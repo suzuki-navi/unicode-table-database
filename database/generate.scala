@@ -10,15 +10,25 @@ import io.circe.generic.auto._;
 import io.circe.generic.semiauto.deriveEncoder;
 
 @main def main: Unit = {
-  val infoMap: Map[String, CodeInfo] = (
-    fetchUnicodeData("var/UnicodeData.txt") ++
-    fetchNameAliases("var/NameAliases.txt") ++
-    fetchScripts("var/Scripts.txt") ++
-    Nil
-  ).foldLeft(Map.empty) { (infoMap, entry) =>
-    val (code, updator) = entry;
-    CodeInfo.updated(infoMap, code)(updator);
+  val codePointInfoMap: Map[String, CodeInfo] = {
+    val codePointInfoMap: Map[String, CodeInfo] = (
+      fetchUnicodeData("var/UnicodeData.txt") ++
+      fetchNameAliases("var/NameAliases.txt") ++
+      fetchScripts("var/Scripts.txt") ++
+      Nil
+    ).foldLeft(Map.empty) { (infoMap, entry) =>
+      val (code, updator) = entry;
+      CodeInfo.updated(infoMap, code)(updator);
+    }
+
+    fetchBlocks(codePointInfoMap, "var/Blocks.txt").foldLeft(codePointInfoMap) { (infoMap, entry) =>
+      val (code, updator) = entry;
+      CodeInfo.updated(infoMap, code)(updator);
+    }
   }
+
+  val infoMap: Map[String, CodeInfo] = codePointInfoMap;
+
   output(infoMap, "data/all.json");
 }
 
@@ -75,6 +85,22 @@ def fetchScripts(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     val scriptName = cols(1);
     (rangeFirst to rangeList).map { c =>
       (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateScript(scriptName));
+    }
+  }.toSeq;
+}
+
+def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split("\\.\\.");
+    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
+      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
+    } else {
+      val c = Integer.parseInt(codePoints(0), 16);
+      (c, c);
+    }
+    val blockName = cols(1);
+    (rangeFirst to rangeList).map { c =>
+      (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateBlock(blockName));
     }
   }.toSeq;
 }
@@ -139,6 +165,7 @@ case class CodeInfo(
   def updateNameFigment(newValue: String) = this.copy(nameFigment = mergeValue(nameFigment, newValue));
   def updateNameAbbreviation(newValue: String) = this.copy(nameAbbreviation = mergeValue(nameAbbreviation, newValue));
   def updateGeneralCategory(newValue: String) = this.copy(generalCategory = mergeValue(generalCategory, newValue));
+  def updateBlock(newValue: String) = this.copy(block = mergeValue(block, newValue));
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
 

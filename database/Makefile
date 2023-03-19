@@ -3,7 +3,8 @@ build: data/data.js
 data/data.js: generate.scala \
 		var/UnicodeData.txt \
 		var/NameAliases.txt \
-		var/Scripts.txt
+		var/Scripts.txt \
+		var/Blocks.txt
 	bash ./docker/docker-run.sh sbt run
 
 UNICODE_VERSION := 15.0.0
@@ -16,4 +17,7 @@ var/NameAliases.txt:
 
 var/Scripts.txt:
 	curl -Ssf -o var/Scripts.txt     'https://www.unicode.org/Public/$(UNICODE_VERSION)/ucd/Scripts.txt'
+
+var/Blocks.txt:
+	curl -Ssf -o var/Blocks.txt      'https://www.unicode.org/Public/$(UNICODE_VERSION)/ucd/Blocks.txt'
 
