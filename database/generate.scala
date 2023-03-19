@@ -14,8 +14,9 @@ import io.circe.generic.semiauto.deriveEncoder;
     val codePointInfoMap: Map[String, CodeInfo] = (
       fetchUnicodeData("var/UnicodeData.txt") ++
       fetchNameAliases("var/NameAliases.txt") ++
-      fetchEmojiData("var/emoji-data.txt") ++
       fetchScripts("var/Scripts.txt") ++
+      fetchEmojiData("var/emoji-data.txt") ++
+      fetchUnihanReadings("var/Unihan_Readings.txt") ++
       Nil
     ).foldLeft(Map.empty) { (infoMap, entry) =>
       val (code, updator) = entry;
@@ -50,7 +51,7 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     ) ++ name.map(name => (code, (codeInfo: CodeInfo) => {
       codeInfo.updateNameDefault(name);
     }));
-  }.toSeq;
+  }
 }
 
 def fetchNameAliases(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
@@ -71,7 +72,7 @@ def fetchNameAliases(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       case v =>
         throw new Exception(v);
     }
-  }.toSeq;
+  }
 }
 
 def fetchScripts(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
@@ -87,7 +88,7 @@ def fetchScripts(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     (rangeFirst to rangeList).map { c =>
       (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateScript(scriptName));
     }
-  }.toSeq;
+  }
 }
 
 def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
@@ -106,7 +107,45 @@ def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     } else {
       Nil;
     }
-  }.toSeq;
+  }
+}
+
+def fetchUnihanReadings(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile2(path, 3).filter { case (line, cols) =>
+    cols(0).startsWith("U+");
+  }.flatMap { case (line, cols) =>
+    val code = cols(0).substring(2);
+    val category = cols(1);
+    if (category == "kDefinition") {
+      val meaning = cols(2);
+      Seq((code, (codeInfo: CodeInfo) => codeInfo.updateMeaning(meaning)));
+    } else if (category == "kMandarin") {
+      val readings = cols(2).split(" ").map(_.trim).filter(_.length > 0);
+      readings.map { reading =>
+        (code, (codeInfo: CodeInfo) => codeInfo.updateMandarinReading(reading));
+      }
+    } else if (category == "kCantonese") {
+      val readings = cols(2).split(" ").map(_.trim).filter(_.length > 0);
+      readings.map { reading =>
+        (code, (codeInfo: CodeInfo) => codeInfo.updateCantoneseReading(reading));
+      }
+    } else if (category == "kHangul") {
+      val readings = cols(2).split(" ").map(_.trim).filter(_.length > 0);
+      readings.map { r =>
+        val reading = {
+          val p = r.indexOf(":");
+          if (p >= 0) {
+            r.substring(0, p);
+          } else {
+            r;
+          }
+        }
+        (code, (codeInfo: CodeInfo) => codeInfo.updateKoreanReading(reading));
+      }
+    } else {
+      Nil;
+    }
+  }
 }
 
 def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
@@ -147,6 +186,28 @@ def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
   }.get;
 }
 
+def usingDataFile2(path: String, colCount: Int): Seq[(String, Seq[String])] = {
+  Using(Source.fromFile(path)) { source =>
+    source.getLines().flatMap { line =>
+      val p = line.indexOf("#");
+      val line2 = if (p < 0) {
+        line;
+      } else {
+        line.substring(0, p);
+      }
+      if (line2 == "") {
+        None;
+      } else {
+        val cols = line2.split("\t", colCount).toIndexedSeq.map(_.trim);
+        if (cols.size != colCount) {
+          throw new Exception(line);
+        }
+        Some((line, cols));
+      }
+    }.toSeq;
+  }.get;
+}
+
 def codePointToCode(codePoint: Int): String = {
   val s = Integer.toString(codePoint, 16).toUpperCase;
   if (s.length <= 3) {
@@ -178,6 +239,11 @@ case class CodeInfo(
 
   emojiPresentation: Option[Boolean],
 
+  meaning: Option[String],
+  mandarinReading: Option[Seq[String]],
+  cantoneseReading: Option[String],
+  koreanReading: Option[Seq[String]],
+
 ) {
 
   def updateNameDefault(newValue: String) = this.copy(nameDefault = mergeValue(nameDefault, newValue));
@@ -191,6 +257,10 @@ case class CodeInfo(
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateEmojiPresentation() = this.copy(emojiPresentation = mergeValue(emojiPresentation, true));
+  def updateMeaning(newValue: String) = this.copy(meaning = mergeValue(meaning, newValue));
+  def updateMandarinReading(newValue: String) = this.copy(mandarinReading = mergeValue(mandarinReading, newValue));
+  def updateCantoneseReading(newValue: String) = this.copy(cantoneseReading = mergeValue(cantoneseReading, newValue));
+  def updateKoreanReading(newValue: String) = this.copy(koreanReading = mergeValue(koreanReading, newValue));
 
   override def toString: String = {
     val extra = CodeInfoExtra(this);
@@ -234,7 +304,7 @@ case class CodeInfo(
 
 object CodeInfo {
 
-  private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None);
+  private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

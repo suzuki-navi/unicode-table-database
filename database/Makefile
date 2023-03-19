@@ -5,7 +5,8 @@ data/data.js: generate.scala \
 		var/NameAliases.txt \
 		var/Scripts.txt \
 		var/Blocks.txt \
-		var/emoji-data.txt
+		var/emoji-data.txt \
+		var/Unihan.zip
 	bash ./docker/docker-run.sh sbt run
 
 UNICODE_VERSION := 15.0.0
@@ -24,4 +25,8 @@ var/Blocks.txt:
 
 var/emoji-data.txt:
 	curl -Ssf -o var/emoji-data.txt  'https://www.unicode.org/Public/$(UNICODE_VERSION)/ucd/emoji/emoji-data.txt'
+
+var/Unihan.zip:
+	curl -Ssf -o var/Unihan.zip      'https://www.unicode.org/Public/$(UNICODE_VERSION)/ucd/Unihan.zip'
+	cd var; unzip Unihan.zip
 
