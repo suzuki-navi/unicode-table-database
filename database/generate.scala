@@ -14,6 +14,7 @@ import io.circe.generic.semiauto.deriveEncoder;
     val codePointInfoMap: Map[String, CodeInfo] = (
       fetchUnicodeData("var/UnicodeData.txt") ++
       fetchNameAliases("var/NameAliases.txt") ++
+      fetchEmojiData("var/emoji-data.txt") ++
       fetchScripts("var/Scripts.txt") ++
       Nil
     ).foldLeft(Map.empty) { (infoMap, entry) =>
@@ -89,6 +90,25 @@ def fetchScripts(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   }.toSeq;
 }
 
+def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split("\\.\\.");
+    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
+      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
+    } else {
+      val c = Integer.parseInt(codePoints(0), 16);
+      (c, c);
+    }
+    if (cols(1) == "Emoji_Presentation") {
+      (rangeFirst to rangeList).map { c =>
+        (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation());
+      }
+    } else {
+      Nil;
+    }
+  }.toSeq;
+}
+
 def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
     val codePoints = cols(0).split("\\.\\.");
@@ -156,6 +176,8 @@ case class CodeInfo(
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
 
+  emojiPresentation: Option[Boolean],
+
 ) {
 
   def updateNameDefault(newValue: String) = this.copy(nameDefault = mergeValue(nameDefault, newValue));
@@ -168,6 +190,7 @@ case class CodeInfo(
   def updateBlock(newValue: String) = this.copy(block = mergeValue(block, newValue));
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
+  def updateEmojiPresentation() = this.copy(emojiPresentation = mergeValue(emojiPresentation, true));
 
   override def toString: String = {
     val extra = CodeInfoExtra(this);
@@ -198,11 +221,20 @@ case class CodeInfo(
     }
   }
 
+  @scala.annotation.targetName("mergeValueBoolean")
+  private[this] def mergeValue(currValue: Option[Boolean], newValue: Boolean): Option[Boolean] = {
+    currValue match {
+      case Some(v) if (v == newValue) => currValue;
+      case Some(v) => throw new Exception("%s != %s".format(v, newValue));
+      case None => Some(newValue);
+    }
+  }
+
 }
 
 object CodeInfo {
 
-  private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None);
+  private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

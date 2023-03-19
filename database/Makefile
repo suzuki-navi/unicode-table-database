@@ -4,7 +4,8 @@ data/data.js: generate.scala \
 		var/UnicodeData.txt \
 		var/NameAliases.txt \
 		var/Scripts.txt \
-		var/Blocks.txt
+		var/Blocks.txt \
+		var/emoji-data.txt
 	bash ./docker/docker-run.sh sbt run
 
 UNICODE_VERSION := 15.0.0
@@ -20,4 +21,7 @@ var/Scripts.txt:
 
 var/Blocks.txt:
 	curl -Ssf -o var/Blocks.txt      'https://www.unicode.org/Public/$(UNICODE_VERSION)/ucd/Blocks.txt'
+
+var/emoji-data.txt:
+	curl -Ssf -o var/emoji-data.txt  'https://www.unicode.org/Public/$(UNICODE_VERSION)/ucd/emoji/emoji-data.txt'
 
