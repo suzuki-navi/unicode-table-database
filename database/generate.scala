@@ -13,6 +13,7 @@ import io.circe.generic.semiauto.deriveEncoder;
   val infoMap: Map[String, CodeInfo] = (
     fetchUnicodeData("var/UnicodeData.txt") ++
     fetchNameAliases("var/NameAliases.txt") ++
+    fetchScripts("var/Scripts.txt") ++
     Nil
   ).foldLeft(Map.empty) { (infoMap, entry) =>
     val (code, updator) = entry;
@@ -22,8 +23,64 @@ import io.circe.generic.semiauto.deriveEncoder;
 }
 
 def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 15).filter { case (line, cols) =>
+    val name = cols(1);
+    !(name.startsWith("<") && name != "<control>");
+  }.flatMap { case (line, cols) =>
+    val code = cols(0);
+    val name = if (cols(1) == "<control>") None else Some(cols(1));
+    val generalCategory = cols(2);
+    val bidiClass = cols(4);
+    Seq[(String, CodeInfo => CodeInfo)](
+      (code, codeInfo => {
+        codeInfo.updateGeneralCategory(generalCategory).
+          updateBidiClass(bidiClass);
+      }),
+    ) ++ name.map(name => (code, (codeInfo: CodeInfo) => {
+      codeInfo.updateNameDefault(name);
+    }));
+  }.toSeq;
+}
+
+def fetchNameAliases(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 3).flatMap { case (line, cols) =>
+    val code = cols(0);
+    val name = cols(1);
+    cols(2) match {
+      case "correction" =>
+        Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameCorrection(name)));
+      case "control" =>
+        Seq((code, (codeInfo: CodeInfo) => codeInfo.appendNameControl(name)));
+      case "alternate" =>
+        Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameAlternate(name)));
+      case "figment" =>
+        Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameFigment(name)));
+      case "abbreviation" =>
+        Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameAbbreviation(name)));
+      case v =>
+        throw new Exception(v);
+    }
+  }.toSeq;
+}
+
+def fetchScripts(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split("\\.\\.");
+    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
+      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
+    } else {
+      val c = Integer.parseInt(codePoints(0), 16);
+      (c, c);
+    }
+    val scriptName = cols(1);
+    (rangeFirst to rangeList).map { c =>
+      (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateScript(scriptName));
+    }
+  }.toSeq;
+}
+
+def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
   Using(Source.fromFile(path)) { source =>
-    val colCount = 15;
     source.getLines().flatMap { line =>
       val p = line.indexOf("#");
       val line2 = if (p < 0) {
@@ -34,73 +91,23 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       if (line2 == "") {
         None;
       } else {
-        val cols = line2.split(";", colCount).map(_.trim);
+        val cols = line2.split(";", colCount).toIndexedSeq.map(_.trim);
         if (cols.size != colCount) {
           throw new Exception(line);
         }
-        Some(cols);
+        Some((line, cols));
       }
-    }.filter { cols =>
-      val name = cols(1);
-      !(name.startsWith("<") && name != "<control>");
-    }.flatMap { cols =>
-      val code = cols(0);
-      val name = if (cols(1) == "<control>") None else Some(cols(1));
-      val generalCategory = cols(2);
-      val bidiClass = cols(4);
-      Seq[(String, CodeInfo => CodeInfo)](
-        (code, codeInfo => {
-          codeInfo.updateGeneralCategory(generalCategory).
-            updateBidiClass(bidiClass);
-        }),
-      ) ++ name.map(name => (code, (codeInfo: CodeInfo) => {
-        codeInfo.updateNameDefault(name);
-      }));
     }.toSeq;
   }.get;
 }
 
-def fetchNameAliases(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
-  Using(Source.fromFile(path)) { source =>
-    val colCount = 3;
-    source.getLines().flatMap { line =>
-      val p = line.indexOf("#");
-      val line2 = if (p < 0) {
-        line;
-      } else {
-        line.substring(0, p);
-      }
-      if (line2 == "") {
-        None;
-      } else {
-        val cols = line2.split(";", colCount).map(_.trim);
-        if (cols.size != colCount) {
-          throw new Exception(line);
-        }
-        Some(cols);
-      }
-    }.filter { cols =>
-      val name = cols(1);
-      !(name.startsWith("<") && name != "<control>");
-    }.flatMap { cols =>
-      val code = cols(0);
-      val name = cols(1);
-      cols(2) match {
-        case "correction" =>
-          Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameCorrection(name)));
-        case "control" =>
-          Seq((code, (codeInfo: CodeInfo) => codeInfo.appendNameControl(name)));
-        case "alternate" =>
-          Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameAlternate(name)));
-        case "figment" =>
-          Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameFigment(name)));
-        case "abbreviation" =>
-          Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameAbbreviation(name)));
-        case v =>
-          throw new Exception(v);
-      }
-    }.toSeq;
-  }.get;
+def codePointToCode(codePoint: Int): String = {
+  val s = Integer.toString(codePoint, 16).toUpperCase;
+  if (s.length <= 3) {
+    ("0000" + s).substring(s.length);
+  } else {
+    s;
+  }
 }
 
 case class CodeInfo(
@@ -132,6 +139,7 @@ case class CodeInfo(
   def updateNameFigment(newValue: String) = this.copy(nameFigment = mergeValue(nameFigment, newValue));
   def updateNameAbbreviation(newValue: String) = this.copy(nameAbbreviation = mergeValue(nameAbbreviation, newValue));
   def updateGeneralCategory(newValue: String) = this.copy(generalCategory = mergeValue(generalCategory, newValue));
+  def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
 
   override def toString: String = {
