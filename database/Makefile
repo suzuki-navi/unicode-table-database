@@ -9,3 +9,6 @@ UNICODE_VERSION := 15.0.0
 var/UnicodeData.txt:
 	curl -Ssf -o var/UnicodeData.txt 'https://www.unicode.org/Public/$(UNICODE_VERSION)/ucd/UnicodeData.txt'
 
+var/NameAliases.txt:
+	curl -Ssf -o var/NameAliases.txt 'https://www.unicode.org/Public/$(UNICODE_VERSION)/ucd/NameAliases.txt'
+
