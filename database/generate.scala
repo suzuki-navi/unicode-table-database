@@ -322,9 +322,10 @@ case class CodeInfoExtra(
 object CodeInfoExtra {
   def apply(info: CodeInfo) = new CodeInfoExtra(
     name = {
-      (info.nameDefault, info.nameCorrection) match {
-        case (_, Some(name)) => Some(name);
-        case (v, _) => v;
+      (info.nameDefault, info.nameCorrection, info.nameControl) match {
+        case (_, Some(name), _) => Some(name);
+        case (None, Some(name), Some(name)) => Some(name);
+        case (v, _, _) => v;
       }
     },
   );
