@@ -324,8 +324,9 @@ object CodeInfoExtra {
     name = {
       (info.nameDefault, info.nameCorrection, info.nameControl) match {
         case (_, Some(name), _) => Some(name);
-        case (None, Some(name), Some(name)) => Some(name);
-        case (v, _, _) => v;
+        case (Some(name), _, _) => Some(name);
+        case (_, _, Some(seq)) => Some(seq.head);
+        case _ => None;
       }
     },
   );
