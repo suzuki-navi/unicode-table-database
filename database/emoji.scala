@@ -24,6 +24,16 @@ def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
           );
         }
       }
+    } else if (cols(1) == "Emoji_Modifier_Base") {
+      // Some characters have Emoji_Modifier_Base but not Emoji_Presentation
+      // ex) 26F9
+      (rangeFirst to rangeList).flatMap { codePoint =>
+        val code = codePointToCode(codePoint);
+        Seq(
+          (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+          (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        );
+      }
     } else {
       Nil;
     }

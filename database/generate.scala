@@ -34,6 +34,8 @@ import io.circe.generic.semiauto.deriveEncoder;
       fetchEmojiSequences(codePointInfoMap2, "var/emoji-sequences.txt") ++
       fetchEmojiVariationSequences(codePointInfoMap2, "var/emoji-variation-sequences.txt") ++
       fetchEmojiZwjSequences(codePointInfoMap2, "var/emoji-zwj-sequences.txt") ++
+      selectMathematicalSymbols(codePointInfoMap2) ++
+      selectArrowSymbols(codePointInfoMap2) ++
       Nil
     ).foldLeft(codePointInfoMap2) { (infoMap, entry) =>
       val (code, updator) = entry;
