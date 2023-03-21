@@ -6,7 +6,6 @@ import scala.util.Using;
 
 import io.circe.Encoder;
 import io.circe.syntax._;
-//import io.circe.generic.auto._;
 import io.circe.generic.semiauto.deriveEncoder;
 
 @main def main: Unit = {
@@ -23,7 +22,19 @@ import io.circe.generic.semiauto.deriveEncoder;
       CodeInfo.updated(infoMap, code)(updator);
     }
 
-    fetchBlocks(codePointInfoMap, "var/Blocks.txt").foldLeft(codePointInfoMap) { (infoMap, entry) =>
+    val codePointInfoMap2: Map[String, CodeInfo] = (
+      fetchBlocks(codePointInfoMap, "var/Blocks.txt")
+    ).foldLeft(codePointInfoMap) { (infoMap, entry) =>
+      val (code, updator) = entry;
+      CodeInfo.updated(infoMap, code)(updator);
+    }
+
+    (
+      fetchEmojiSequences(codePointInfoMap2, "var/emoji-sequences.txt") ++
+      fetchEmojiVariationSequences(codePointInfoMap2, "var/emoji-variation-sequences.txt") ++
+      fetchEmojiZwjSequences(codePointInfoMap2, "var/emoji-zwj-sequences.txt") ++
+      Nil
+    ).foldLeft(codePointInfoMap2) { (infoMap, entry) =>
       val (code, updator) = entry;
       CodeInfo.updated(infoMap, code)(updator);
     }
@@ -101,12 +112,112 @@ def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       (c, c);
     }
     if (cols(1) == "Emoji_Presentation") {
-      (rangeFirst to rangeList).map { c =>
-        (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation());
+      (rangeFirst to rangeList).flatMap { codePoint =>
+        val code = codePointToCode(codePoint);
+        if (codePoint >= 0x1F1E6 && codePoint <= 0x1F1FF) { // Regional Indicator
+          val name = "RI " + (codePoint - 0x1F1E6 + 0x41).asInstanceOf[Char].toString;
+          Seq(
+            (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+            (code, (codeInfo: CodeInfo) => codeInfo.updateNameAbbreviation(name)),
+          );
+        } else {
+          Seq(
+            (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+            (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+          );
+        }
       }
     } else {
       Nil;
     }
+  }
+}
+
+def fetchEmojiSequences(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 3).flatMap { case (line, cols) =>
+    if (cols(1) == "Emoji_Keycap_Sequence") {
+      val codePoints = cols(0).split(" ").map(c => Integer.parseInt(c, 16));
+      val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
+      val name = cols(2);
+      IndexedSeq(
+        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
+      );
+    } else if (cols(1) == "RGI_Emoji_Flag_Sequence") {
+      val codePoints = cols(0).split(" ").map(c => Integer.parseInt(c, 16));
+      val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
+      val nameRI = codePoints.map(c => (c - 0x1F1E6 + 0x41).asInstanceOf[Char].toString).mkString("");
+      val name = cols(2);
+      val nameCustom = name + " (" + nameRI + ")";
+      IndexedSeq(
+        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji-flag")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(Some(nameCustom))),
+      );
+    } else if (cols(1) == "RGI_Emoji_Tag_Sequence") {
+      val codePoints = cols(0).split(" ").map(c => Integer.parseInt(c, 16));
+      val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
+      val nameRI = codePoints.slice(1, codePoints.size - 1).map(c => (c - 0xE0020 + 0x20).asInstanceOf[Char].toString).mkString("");
+      val name = cols(2);
+      val nameCustom = name + " (" + nameRI + ")";
+      IndexedSeq(
+        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji-flag")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(Some(nameCustom))),
+      );
+    } else if (cols(1) == "RGI_Emoji_Modifier_Sequence") {
+      val codePoints = cols(0).split(" ").map(c => Integer.parseInt(c, 16)).toSeq;
+      val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
+      val nameOpt = buildCombiningName(codePoints, codePointInfoMap);
+      IndexedSeq(
+        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(nameOpt)),
+      );
+    } else {
+      IndexedSeq.empty;
+    }
+  }
+}
+
+def fetchEmojiVariationSequences(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split(" ").map(c => Integer.parseInt(c, 16)).toSeq;
+    val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
+    val baseCode = codePoints.slice(0, codePoints.length - 1);
+    if (codePoints(codePoints.length - 1) == 0xFE0E) { // text VS
+      val nameOpt = buildCombiningName(baseCode, codePointInfoMap).map(_ + "; text presentation selector");
+      IndexedSeq(
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(nameOpt)),
+      );
+    } else if (codePoints(codePoints.length - 1) == 0xFE0F) { // emoji VS
+      val nameOpt = buildCombiningName(baseCode, codePointInfoMap).map(_ + "; emoji presentation selector");
+      IndexedSeq(
+        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(nameOpt)),
+      );
+    } else {
+      throw new Exception(line);
+    }
+  }
+}
+
+def fetchEmojiZwjSequences(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 3).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split(" ").map(c => Integer.parseInt(c, 16)).toSeq;
+    val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
+    val name = cols(2);
+    IndexedSeq(
+      (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+      (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+      (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
+    );
   }
 }
 
@@ -170,6 +281,7 @@ def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(Str
 }
 
 def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
+  println(path);
   Using(Source.fromFile(path)) { source =>
     source.getLines().flatMap { line =>
       val p = line.indexOf("#");
@@ -213,6 +325,17 @@ def usingDataFile2(path: String, colCount: Int): Seq[(String, Seq[String])] = {
   }.get;
 }
 
+def buildCombiningName(codePoints: Seq[Int], codePointInfoMap: Map[String, CodeInfo]): Option[String] = {
+  val nameOpts: Seq[Option[String]] = codePoints.map { codePoint =>
+    codePointInfoMap.get(codePointToCode(codePoint)).flatMap(info => CodeInfoExtra.nameFromInfo(info));
+  }
+  if (nameOpts.exists(_.isEmpty)) {
+    None;
+  } else {
+    Some(nameOpts.map(_.get).mkString("; "));
+  }
+}
+
 def codePointToCode(codePoint: Int): String = {
   val s = Integer.toString(codePoint, 16).toUpperCase;
   if (s.length <= 3) {
@@ -231,6 +354,8 @@ case class CodeInfo(
   nameAlternate: Option[String],
   nameFigment: Option[String],
   nameAbbreviation: Option[Seq[String]],
+  nameEmoji: Option[String],
+  nameCustom: Option[String],
 
   // https://www.unicode.org/reports/tr44/tr44-30.html#General_Category_Values
   generalCategory: Option[String],
@@ -249,6 +374,8 @@ case class CodeInfo(
   cantoneseReading: Option[String],
   koreanReading: Option[Seq[String]],
 
+  option: Option[Seq[String]],
+
 ) {
 
   def updateNameDefault(newValue: String) = this.copy(nameDefault = mergeValue(nameDefault, newValue));
@@ -257,6 +384,11 @@ case class CodeInfo(
   def updateNameAlternate(newValue: String) = this.copy(nameAlternate = mergeValue(nameAlternate, newValue));
   def updateNameFigment(newValue: String) = this.copy(nameFigment = mergeValue(nameFigment, newValue));
   def updateNameAbbreviation(newValue: String) = this.copy(nameAbbreviation = mergeValue(nameAbbreviation, newValue));
+  def updateNameEmoji(newValue: String) = this.copy(nameEmoji = mergeValue(nameEmoji, newValue));
+  def updateNameCustom(nameOpt: Option[String]): CodeInfo = nameOpt match {
+    case Some(newValue) => this.copy(nameCustom = mergeValue(nameCustom, newValue));
+    case None => this;
+  }
   def updateGeneralCategory(newValue: String) = this.copy(generalCategory = mergeValue(generalCategory, newValue));
   def updateBlock(newValue: String) = this.copy(block = mergeValue(block, newValue));
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
@@ -266,6 +398,7 @@ case class CodeInfo(
   def updateMandarinReading(newValue: String) = this.copy(mandarinReading = mergeValue(mandarinReading, newValue));
   def updateCantoneseReading(newValue: String) = this.copy(cantoneseReading = mergeValue(cantoneseReading, newValue));
   def updateKoreanReading(newValue: String) = this.copy(koreanReading = mergeValue(koreanReading, newValue));
+  def updateOption(newValue: String) = this.copy(option = mergeValue(option, newValue));
 
   override def toString: String = {
     val extra = CodeInfoExtra(this);
@@ -309,7 +442,8 @@ case class CodeInfo(
 
 object CodeInfo {
 
-  private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None);
+  private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
+                               None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));
@@ -326,16 +460,19 @@ case class CodeInfoExtra(
 
 object CodeInfoExtra {
   def apply(info: CodeInfo) = new CodeInfoExtra(
-    name = {
-      (info.nameDefault, info.nameCorrection, info.nameControl) match {
-        case (_, Some(name), _) => Some(name);
-        case (Some(name), _, _) => Some(name);
-        case (_, _, Some(seq)) => Some(seq.head);
-        case _ => None;
-      }
-    },
+    name = nameFromInfo(info),
   );
   implicit val encoder: Encoder[CodeInfoExtra] = deriveEncoder[CodeInfoExtra].mapJson(_.dropNullValues);
+
+  def nameFromInfo(info: CodeInfo): Option[String] = {
+    (info.nameDefault, info.nameCorrection, info.nameControl, info.nameCustom) match {
+      case (_, _, _, Some(name)) => Some(name);
+      case (_, Some(name), _, _) => Some(name);
+      case (Some(name), _, _, _) => Some(name);
+      case (_, _, Some(seq), _) => Some(seq.head);
+      case _ => None;
+    }
+  }
 }
 
 def output(infoMap: Map[String, CodeInfo], path: String): Unit = {
@@ -353,6 +490,7 @@ def output(infoMap: Map[String, CodeInfo], path: String): Unit = {
     }.mkString("");
   });
 
+  println(path);
   val fh = new PrintWriter(path);
   fh.println("{");
 
