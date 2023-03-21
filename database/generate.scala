@@ -12,6 +12,7 @@ import io.circe.generic.semiauto.deriveEncoder;
   val codePointInfoMap: Map[String, CodeInfo] = {
     val codePointInfoMap: Map[String, CodeInfo] = (
       fetchUnicodeData("var/UnicodeData.txt") ++
+      fetchBidiMirroring("var/BidiMirroring.txt") ++
       fetchNameAliases("var/NameAliases.txt") ++
       fetchScripts("var/Scripts.txt") ++
       fetchEmojiData("var/emoji-data.txt") ++
@@ -55,13 +56,21 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     val generalCategory = cols(2);
     val bidiClass = cols(4);
     Seq[(String, CodeInfo => CodeInfo)](
-      (code, codeInfo => {
-        codeInfo.updateGeneralCategory(generalCategory).
-          updateBidiClass(bidiClass);
-      }),
+      (code, codeInfo => codeInfo.updateGeneralCategory(generalCategory)),
+      (code, codeInfo => codeInfo.updateBidiClass(bidiClass)),
     ) ++ name.map(name => (code, (codeInfo: CodeInfo) => {
       codeInfo.updateNameDefault(name);
     }));
+  }
+}
+
+def fetchBidiMirroring(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val code1 = cols(0);
+    val code2 = cols(1);
+    Seq[(String, CodeInfo => CodeInfo)](
+      (code1, codeInfo => codeInfo.updateBidiMirroring(code2)),
+    );
   }
 }
 
@@ -367,6 +376,8 @@ case class CodeInfo(
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
 
+  bidiMirroring: Option[String],
+
   emojiPresentation: Option[Boolean],
 
   meaning: Option[String],
@@ -393,6 +404,7 @@ case class CodeInfo(
   def updateBlock(newValue: String) = this.copy(block = mergeValue(block, newValue));
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
+  def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
   def updateEmojiPresentation() = this.copy(emojiPresentation = mergeValue(emojiPresentation, true));
   def updateMeaning(newValue: String) = this.copy(meaning = mergeValue(meaning, newValue));
   def updateMandarinReading(newValue: String) = this.copy(mandarinReading = mergeValue(mandarinReading, newValue));
@@ -443,7 +455,7 @@ case class CodeInfo(
 object CodeInfo {
 
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None, None, None);
+                               None, None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));
@@ -465,11 +477,12 @@ object CodeInfoExtra {
   implicit val encoder: Encoder[CodeInfoExtra] = deriveEncoder[CodeInfoExtra].mapJson(_.dropNullValues);
 
   def nameFromInfo(info: CodeInfo): Option[String] = {
-    (info.nameDefault, info.nameCorrection, info.nameControl, info.nameCustom) match {
-      case (_, _, _, Some(name)) => Some(name);
-      case (_, Some(name), _, _) => Some(name);
-      case (Some(name), _, _, _) => Some(name);
-      case (_, _, Some(seq), _) => Some(seq.head);
+    (info.nameDefault, info.nameCorrection, info.nameControl, info.nameEmoji, info.nameCustom) match {
+      case (_, _, _, _, Some(name)) => Some(name);
+      case (_, _, _, Some(name), _) => Some(name);
+      case (_, Some(name), _, _, _) => Some(name);
+      case (Some(name), _, _, _, _) => Some(name);
+      case (_, _, Some(seq), _, _) => Some(seq.head);
       case _ => None;
     }
   }
