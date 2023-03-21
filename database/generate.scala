@@ -6,7 +6,7 @@ import scala.util.Using;
 
 import io.circe.Encoder;
 import io.circe.syntax._;
-import io.circe.generic.auto._;
+//import io.circe.generic.auto._;
 import io.circe.generic.semiauto.deriveEncoder;
 
 @main def main: Unit = {

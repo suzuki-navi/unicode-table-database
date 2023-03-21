@@ -1,13 +1,13 @@
-build: data/data.js
+build: data/all.json
 
-data/data.js: generate.scala \
+data/all.json: generate.scala \
 		var/UnicodeData.txt \
 		var/NameAliases.txt \
 		var/Scripts.txt \
 		var/Blocks.txt \
 		var/emoji-data.txt \
 		var/Unihan.zip
-	bash ./docker/docker-run.sh sbt run
+	bash ../etc/scala-docker/docker-run.sh sbt run
 
 UNICODE_VERSION := 15.0.0
 
