@@ -158,8 +158,13 @@ def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(Str
       (c, c);
     }
     val blockName = cols(1);
-    (rangeFirst to rangeList).map { c =>
-      (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateBlock(blockName));
+    (rangeFirst to rangeList).flatMap { c =>
+      val code = codePointToCode(c);
+      if (codePointInfoMap.contains(code)) {
+        Some((code, (codeInfo: CodeInfo) => codeInfo.updateBlock(blockName)));
+      } else {
+        None;
+      }
     }
   }.toSeq;
 }
