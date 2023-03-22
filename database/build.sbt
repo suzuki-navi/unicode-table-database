@@ -15,4 +15,5 @@ scalacOptions ++= Seq("-deprecation")
 
 libraryDependencies += "io.circe" %% "circe-core" % "0.14.3"
 libraryDependencies += "io.circe" %% "circe-generic" % "0.14.3"
+libraryDependencies += "io.circe" %% "circe-parser" % "0.14.3"
 

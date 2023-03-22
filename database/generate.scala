@@ -4,13 +4,9 @@ import scala.collection.immutable.SeqMap;
 import scala.io.Source;
 import scala.util.Using;
 
-import io.circe.Encoder;
-import io.circe.syntax._;
-import io.circe.generic.semiauto.deriveEncoder;
-
 @main def main: Unit = {
   val codePointInfoMap: Map[String, CodeInfo] = {
-    val codePointInfoMap: Map[String, CodeInfo] = (
+    val singleCodePointInfoMap: Map[String, CodeInfo] = (
       fetchUnicodeData("var/UnicodeData.txt") ++
       fetchBidiMirroring("var/BidiMirroring.txt") ++
       fetchNameAliases("var/NameAliases.txt") ++
@@ -23,24 +19,34 @@ import io.circe.generic.semiauto.deriveEncoder;
       CodeInfo.updated(infoMap, code)(updator);
     }
 
-    val codePointInfoMap2: Map[String, CodeInfo] = (
-      fetchBlocks(codePointInfoMap, "var/Blocks.txt")
-    ).foldLeft(codePointInfoMap) { (infoMap, entry) =>
+    val singleCodePointWithBlockInfoMap: Map[String, CodeInfo] = (
+      fetchBlocks(singleCodePointInfoMap, "var/Blocks.txt")
+    ).foldLeft(singleCodePointInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
       CodeInfo.updated(infoMap, code)(updator);
     }
 
-    (
-      fetchEmojiSequences(codePointInfoMap2, "var/emoji-sequences.txt") ++
-      fetchEmojiVariationSequences(codePointInfoMap2, "var/emoji-variation-sequences.txt") ++
-      fetchEmojiZwjSequences(codePointInfoMap2, "var/emoji-zwj-sequences.txt") ++
-      selectMathematicalSymbols(codePointInfoMap2) ++
-      selectArrowSymbols(codePointInfoMap2) ++
+    val sequenceCodePointsInfoMap: Map[String, CodeInfo] = (
+      fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
+      fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
+      fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
       Nil
-    ).foldLeft(codePointInfoMap2) { (infoMap, entry) =>
+    ).foldLeft(singleCodePointWithBlockInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
       CodeInfo.updated(infoMap, code)(updator);
     }
+
+    val codePointInfoMap: Map[String, CodeInfo] = (
+      selectMathematicalSymbols(sequenceCodePointsInfoMap) ++
+      selectArrowSymbols(sequenceCodePointsInfoMap) ++
+      selectCharacterInfoName(sequenceCodePointsInfoMap) ++
+      Nil
+    ).foldLeft(sequenceCodePointsInfoMap) { (infoMap, entry) =>
+      val (code, updator) = entry;
+      CodeInfo.updated(infoMap, code)(updator);
+    }
+
+    codePointInfoMap;
   }
 
   val infoMap: Map[String, CodeInfo] = codePointInfoMap;
@@ -147,6 +153,14 @@ def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(Str
   }.toSeq;
 }
 
+def selectCharacterInfoName(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
+  codePointInfoMap.toSeq.flatMap { case (code, info) =>
+    selectName(info).map { name =>
+      (code, (codeInfo: CodeInfo) => codeInfo.updateName(name));
+    }
+  }
+}
+
 def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
   println(path);
   Using(Source.fromFile(path)) { source =>
@@ -192,9 +206,20 @@ def usingDataFile2(path: String, colCount: Int): Seq[(String, Seq[String])] = {
   }.get;
 }
 
+def selectName(info: CodeInfo): Option[String] = {
+  (info.nameDefault, info.nameCorrection, info.nameControl, info.nameEmoji, info.nameCustom) match {
+    case (_, _, _, _, Some(name)) => Some(name);
+    case (_, _, _, Some(name), _) => Some(name);
+    case (_, Some(name), _, _, _) => Some(name);
+    case (Some(name), _, _, _, _) => Some(name);
+    case (_, _, Some(seq), _, _) => Some(seq.head);
+    case _ => None;
+  }
+}
+
 def buildCombiningName(codePoints: Seq[Int], codePointInfoMap: Map[String, CodeInfo]): Option[String] = {
   val nameOpts: Seq[Option[String]] = codePoints.map { codePoint =>
-    codePointInfoMap.get(codePointToCode(codePoint)).flatMap(info => CodeInfoExtra.nameFromInfo(info));
+    codePointInfoMap.get(codePointToCode(codePoint)).flatMap(info => selectName(info));
   }
   if (nameOpts.exists(_.isEmpty)) {
     None;
@@ -209,140 +234,6 @@ def codePointToCode(codePoint: Int): String = {
     ("0000" + s).substring(s.length);
   } else {
     s;
-  }
-}
-
-case class CodeInfo(
-  nameDefault: Option[String],
-
-  // https://www.unicode.org/Public/15.0.0/ucd/NameAliases.txt
-  nameCorrection: Option[String],
-  nameControl: Option[Seq[String]],
-  nameAlternate: Option[String],
-  nameFigment: Option[String],
-  nameAbbreviation: Option[Seq[String]],
-  nameEmoji: Option[String],
-  nameCustom: Option[String],
-
-  // https://www.unicode.org/reports/tr44/tr44-30.html#General_Category_Values
-  generalCategory: Option[String],
-
-  block: Option[String],
-
-  script: Option[String],
-
-  // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
-  bidiClass: Option[String],
-
-  bidiMirroring: Option[String],
-
-  emojiPresentation: Option[Boolean],
-
-  meaning: Option[String],
-  mandarinReading: Option[Seq[String]],
-  cantoneseReading: Option[String],
-  koreanReading: Option[Seq[String]],
-
-  option: Option[Seq[String]],
-
-) {
-
-  def updateNameDefault(newValue: String) = this.copy(nameDefault = mergeValue(nameDefault, newValue));
-  def updateNameCorrection(newValue: String) = this.copy(nameCorrection = mergeValue(nameCorrection, newValue));
-  def appendNameControl(newValue: String) = this.copy(nameControl = mergeValue(nameControl, newValue));
-  def updateNameAlternate(newValue: String) = this.copy(nameAlternate = mergeValue(nameAlternate, newValue));
-  def updateNameFigment(newValue: String) = this.copy(nameFigment = mergeValue(nameFigment, newValue));
-  def updateNameAbbreviation(newValue: String) = this.copy(nameAbbreviation = mergeValue(nameAbbreviation, newValue));
-  def updateNameEmoji(newValue: String) = this.copy(nameEmoji = mergeValue(nameEmoji, newValue));
-  def updateNameCustom(nameOpt: Option[String]): CodeInfo = nameOpt match {
-    case Some(newValue) => this.copy(nameCustom = mergeValue(nameCustom, newValue));
-    case None => this;
-  }
-  def updateGeneralCategory(newValue: String) = this.copy(generalCategory = mergeValue(generalCategory, newValue));
-  def updateBlock(newValue: String) = this.copy(block = mergeValue(block, newValue));
-  def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
-  def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
-  def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
-  def updateEmojiPresentation() = this.copy(emojiPresentation = mergeValue(emojiPresentation, true));
-  def updateMeaning(newValue: String) = this.copy(meaning = mergeValue(meaning, newValue));
-  def updateMandarinReading(newValue: String) = this.copy(mandarinReading = mergeValue(mandarinReading, newValue));
-  def updateCantoneseReading(newValue: String) = this.copy(cantoneseReading = mergeValue(cantoneseReading, newValue));
-  def updateKoreanReading(newValue: String) = this.copy(koreanReading = mergeValue(koreanReading, newValue));
-  def updateOption(newValue: String) = this.copy(option = mergeValue(option, newValue));
-
-  override def toString: String = {
-    val extra = CodeInfoExtra(this);
-    val strT1 = this.asJson.noSpaces;
-    val strX1 = extra.asJson.noSpaces;
-    val strT2 = strT1.substring(1, strT1.length - 1);
-    val strX2 = strX1.substring(1, strX1.length - 1);
-    if (strT2 == "" || strX2 == "") {
-      "{" + strT2 + strX2 + "}";
-    } else {
-      "{" + strT2 + "," + strX2 + "}";
-    }
-  }
-
-  private[this] def mergeValue(currValue: Option[String], newValue: String): Option[String] = {
-    currValue match {
-      case Some(v) if (v == newValue) => currValue;
-      case Some(v) => throw new Exception("%s != %s".format(v, newValue));
-      case None => Some(newValue);
-    }
-  }
-
-  @scala.annotation.targetName("mergeValueSeq")
-  private[this] def mergeValue(currValue: Option[Seq[String]], newValue: String): Option[Seq[String]] = {
-    currValue match {
-      case Some(seq) => Some(seq :+ newValue);
-      case None => Some(Seq(newValue));
-    }
-  }
-
-  @scala.annotation.targetName("mergeValueBoolean")
-  private[this] def mergeValue(currValue: Option[Boolean], newValue: Boolean): Option[Boolean] = {
-    currValue match {
-      case Some(v) if (v == newValue) => currValue;
-      case Some(v) => throw new Exception("%s != %s".format(v, newValue));
-      case None => Some(newValue);
-    }
-  }
-
-}
-
-object CodeInfo {
-
-  private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None, None, None, None);
-
-  def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
-    val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));
-    infoMap.updated(code, newInfo);
-  }
-
-  implicit val encoder: Encoder[CodeInfo] = deriveEncoder[CodeInfo].mapJson(_.dropNullValues);
-
-}
-
-case class CodeInfoExtra(
-  name: Option[String],
-);
-
-object CodeInfoExtra {
-  def apply(info: CodeInfo) = new CodeInfoExtra(
-    name = nameFromInfo(info),
-  );
-  implicit val encoder: Encoder[CodeInfoExtra] = deriveEncoder[CodeInfoExtra].mapJson(_.dropNullValues);
-
-  def nameFromInfo(info: CodeInfo): Option[String] = {
-    (info.nameDefault, info.nameCorrection, info.nameControl, info.nameEmoji, info.nameCustom) match {
-      case (_, _, _, _, Some(name)) => Some(name);
-      case (_, _, _, Some(name), _) => Some(name);
-      case (_, Some(name), _, _, _) => Some(name);
-      case (Some(name), _, _, _, _) => Some(name);
-      case (_, _, Some(seq), _, _) => Some(seq.head);
-      case _ => None;
-    }
   }
 }
 
