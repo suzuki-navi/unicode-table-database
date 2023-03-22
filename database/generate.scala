@@ -39,6 +39,7 @@ import scala.util.Using;
     val codePointInfoMap: Map[String, CodeInfo] = (
       selectMathematicalSymbols(sequenceCodePointsInfoMap) ++
       selectArrowSymbols(sequenceCodePointsInfoMap) ++
+      selectEmojiCharacters(sequenceCodePointsInfoMap) ++
       selectCharacterInfoName(sequenceCodePointsInfoMap) ++
       Nil
     ).foldLeft(sequenceCodePointsInfoMap) { (infoMap, entry) =>

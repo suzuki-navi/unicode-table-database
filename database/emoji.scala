@@ -20,7 +20,7 @@ def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
         } else {
           Seq(
             (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
-            (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+            (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
           );
         }
       }
@@ -30,8 +30,8 @@ def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       (rangeFirst to rangeList).flatMap { codePoint =>
         val code = codePointToCode(codePoint);
         Seq(
-          (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
-          (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+          (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiModifierBase()),
+          // (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
         );
       }
     } else {
@@ -47,8 +47,7 @@ def fetchEmojiSequences(codePointInfoMap: Map[String, CodeInfo], path: String): 
       val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
       val name = cols(2);
       IndexedSeq(
-        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
-        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
         (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
       );
     } else if (cols(1) == "RGI_Emoji_Flag_Sequence") {
@@ -58,8 +57,7 @@ def fetchEmojiSequences(codePointInfoMap: Map[String, CodeInfo], path: String): 
       val name = cols(2);
       val nameCustom = name + " (" + nameRI + ")";
       IndexedSeq(
-        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
-        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
         (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji-flag")),
         (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
         (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(Some(nameCustom))),
@@ -71,8 +69,7 @@ def fetchEmojiSequences(codePointInfoMap: Map[String, CodeInfo], path: String): 
       val name = cols(2);
       val nameCustom = name + " (" + nameRI + ")";
       IndexedSeq(
-        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
-        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
         (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji-flag")),
         (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
         (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(Some(nameCustom))),
@@ -82,8 +79,7 @@ def fetchEmojiSequences(codePointInfoMap: Map[String, CodeInfo], path: String): 
       val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
       val nameOpt = buildCombiningName(codePoints, codePointInfoMap);
       IndexedSeq(
-        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
-        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
         (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(nameOpt)),
       );
     } else {
@@ -105,8 +101,7 @@ def fetchEmojiVariationSequences(codePointInfoMap: Map[String, CodeInfo], path: 
     } else if (codePoints(codePoints.length - 1) == 0xFE0F) { // emoji VS
       val nameOpt = buildCombiningName(baseCode, codePointInfoMap).map(_ + "; emoji presentation selector");
       IndexedSeq(
-        (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
-        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
         (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(nameOpt)),
       );
     } else {
@@ -115,4 +110,49 @@ def fetchEmojiVariationSequences(codePointInfoMap: Map[String, CodeInfo], path: 
   }
 }
 
-
+def selectEmojiCharacters(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
+  codePointInfoMap.toSeq.flatMap { case (code, info) =>
+    def isEmojiPresentation(info: CodeInfo): Boolean = {
+      //info.emojiPresentation == Some(true) || info.emojiModifierBase == Some(true);
+      info.emojiPresentation == Some(true);
+    }
+    def codeToHtml(code: String): String = {
+      code.split(" ").map(Integer.parseInt(_, 16)).map(i => "&#x" + Integer.toString(i, 16).toUpperCase + ";").mkString("");
+    }
+    if (info.option.getOrElse(Nil).contains("emojiFont")) {
+      if (code.endsWith(" FE0F")) {
+        val parentCode = code.substring(0, code.length - 5);
+        if (isEmojiPresentation(codePointInfoMap(parentCode))) {
+          val html = codeToHtml(code);
+          IndexedSeq(
+            (parentCode, (codeInfo: CodeInfo) => codeInfo.updateHtml(html)),
+          );
+        } else if (codePointInfoMap.contains(code + " 20E3")) {
+          IndexedSeq.empty;
+        } else {
+          IndexedSeq(
+            (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+          );
+        }
+      } else {
+        IndexedSeq(
+          (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
+        );
+      }
+    } else {
+      if (code.endsWith(" FE0E")) {
+        val parentCode = code.substring(0, code.length - 5);
+        if (!isEmojiPresentation(codePointInfoMap(parentCode))) {
+          val html = codeToHtml(code);
+          IndexedSeq(
+            (parentCode, (codeInfo: CodeInfo) => codeInfo.updateHtml(html)),
+          );
+        } else {
+          IndexedSeq.empty;
+        }
+      } else {
+        IndexedSeq.empty;
+      }
+    }
+  }
+}

@@ -32,12 +32,14 @@ case class CodeInfo(
   bidiMirroring: Option[String],
 
   emojiPresentation: Option[Boolean],
+  emojiModifierBase: Option[Boolean],
 
   meaning: Option[String],
   mandarinReading: Option[Seq[String]],
   cantoneseReading: Option[String],
   koreanReading: Option[Seq[String]],
 
+  html: Option[String],
   option: Option[Seq[String]],
 
 ) {
@@ -60,10 +62,12 @@ case class CodeInfo(
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
   def updateEmojiPresentation() = this.copy(emojiPresentation = mergeValue(emojiPresentation, true));
+  def updateEmojiModifierBase() = this.copy(emojiModifierBase = mergeValue(emojiModifierBase, true));
   def updateMeaning(newValue: String) = this.copy(meaning = mergeValue(meaning, newValue));
   def updateMandarinReading(newValue: String) = this.copy(mandarinReading = mergeValue(mandarinReading, newValue));
   def updateCantoneseReading(newValue: String) = this.copy(cantoneseReading = mergeValue(cantoneseReading, newValue));
   def updateKoreanReading(newValue: String) = this.copy(koreanReading = mergeValue(koreanReading, newValue));
+  def updateHtml(newValue: String) = this.copy(html = mergeValue(html, newValue));
   def updateOption(newValue: String) = this.copy(option = mergeValue(option, newValue));
 
   override def toString: String = {
@@ -100,7 +104,8 @@ case class CodeInfo(
 object CodeInfo {
 
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None, None, None, None, None);
+                               None, None, None, None, None, None, None, None, None, None, None,
+                               );
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));
