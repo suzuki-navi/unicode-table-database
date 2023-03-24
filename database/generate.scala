@@ -30,6 +30,7 @@ import scala.util.Using;
       fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
       fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
       fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
+      fetchEmojiTest(singleCodePointWithBlockInfoMap, "var/emoji-test.txt") ++
       Nil
     ).foldLeft(singleCodePointWithBlockInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
@@ -202,6 +203,33 @@ def usingDataFile2(path: String, colCount: Int): Seq[(String, Seq[String])] = {
           throw new Exception(line);
         }
         Some((line, cols));
+      }
+    }.toSeq;
+  }.get;
+}
+
+def usingDataFile3(path: String, colCount: Int): Seq[(String, Option[Seq[String]])] = {
+  println(path);
+  Using(Source.fromFile(path)) { source =>
+    source.getLines().flatMap { line =>
+      val p = line.indexOf("#");
+      val line2 = if (p < 0) {
+        line;
+      } else {
+        line.substring(0, p);
+      }
+      if (line2 == "") {
+        if (line == "") {
+          None;
+        } else {
+          Some((line, None));
+        }
+      } else {
+        val cols = line2.split(";", colCount).toIndexedSeq.map(_.trim);
+        if (cols.size != colCount) {
+          throw new Exception(line);
+        }
+        Some((line, Some(cols)));
       }
     }.toSeq;
   }.get;
