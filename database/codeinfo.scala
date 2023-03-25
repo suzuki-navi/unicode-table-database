@@ -35,6 +35,9 @@ case class CodeInfo(
   turkicCaseFolding: Option[String],
   caseOf: Option[Seq[String]],
 
+  decompositionType: Option[String],
+  decompositionMapping: Option[String],
+
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
 
@@ -82,6 +85,9 @@ case class CodeInfo(
   def updateSimpleCaseFolding(newValue: String) = this.copy(simpleCaseFolding = mergeValue(simpleCaseFolding, newValue));
   def updateTurkicCaseFolding(newValue: String) = this.copy(turkicCaseFolding = mergeValue(turkicCaseFolding, newValue));
   def updateCaseOf(newValue: String) = this.copy(caseOf = mergeValue(caseOf, newValue));
+
+  def updateDecompositionType(newValue: String) = this.copy(decompositionType = mergeValue(decompositionType, newValue));
+  def updateDecompositionMapping(newValue: String) = this.copy(decompositionMapping = mergeValue(decompositionMapping, newValue));
 
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
@@ -134,7 +140,8 @@ object CodeInfo {
 
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None, None, None, None, None, None, None);
+                               None, None, None, None, None, None, None, None, None, None, None,
+                               None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

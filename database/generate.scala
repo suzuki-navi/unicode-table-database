@@ -66,27 +66,52 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   }.flatMap { case (line, cols) =>
     var result: Seq[(String, CodeInfo => CodeInfo)] = Nil;
     val code = cols(0);
-    val name = cols(1);
-    val generalCategory = cols(2);
-    val bidiClass = cols(4);
-    val upperCase = cols(12);
-    val lowerCase = cols(13);
-    val titleCase = cols(14);
 
-    if (name != "<control>") {
-      result = result :+ (code, codeInfo => codeInfo.updateNameDefault(name));
+    {
+      val name = cols(1);
+      if (name != "<control>") {
+        result = result :+ (code, codeInfo => codeInfo.updateNameDefault(name));
+      }
     }
-    result = result :+ (code, codeInfo => codeInfo.updateGeneralCategory(generalCategory));
-    result = result :+ (code, codeInfo => codeInfo.updateBidiClass(bidiClass));
-    if (upperCase != "") {
-      result = result :+ (code, codeInfo => codeInfo.updateUpperCase(upperCase));
+
+    {
+      val generalCategory = cols(2);
+      result = result :+ (code, codeInfo => codeInfo.updateGeneralCategory(generalCategory));
     }
-    if (lowerCase != "") {
-      result = result :+ (code, codeInfo => codeInfo.updateLowerCase(lowerCase));
+    {
+      val bidiClass = cols(4);
+      result = result :+ (code, codeInfo => codeInfo.updateBidiClass(bidiClass));
     }
-    if (titleCase != "") {
-      result = result :+ (code, codeInfo => codeInfo.updateTitleCase(titleCase));
+    {
+      val upperCase = cols(12);
+      val lowerCase = cols(13);
+      val titleCase = cols(14);
+      if (upperCase != "") {
+        result = result :+ (code, codeInfo => codeInfo.updateUpperCase(upperCase));
+      }
+      if (lowerCase != "") {
+        result = result :+ (code, codeInfo => codeInfo.updateLowerCase(lowerCase));
+      }
+      if (titleCase != "") {
+        result = result :+ (code, codeInfo => codeInfo.updateTitleCase(titleCase));
+      }
     }
+
+    if (cols(5) != "") {
+      val cs = cols(5).split(" ").toSeq;
+      val cs0 = cs(0);
+      val (decompositionType, decompositionMapping) = if (cs0.startsWith("<") && cs0.endsWith(">")) {
+        val decompositionType = cs0.substring(1, cs0.length - 1);
+        val decompositionMapping = cs.slice(1, cs.length);
+        (decompositionType, decompositionMapping);
+      } else {
+        ("default", cs);
+      }
+      val decompositionMappingStr = decompositionMapping.mkString(" ");
+      result = result :+ (code, codeInfo => codeInfo.
+        updateDecompositionType(decompositionType).updateDecompositionMapping(decompositionMappingStr));
+    }
+
     result;
   }
 }
