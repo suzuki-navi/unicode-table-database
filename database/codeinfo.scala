@@ -25,6 +25,7 @@ case class CodeInfo(
   block: Option[String],
 
   script: Option[String],
+  scriptExtension: Option[Seq[String]],
 
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
@@ -64,6 +65,7 @@ case class CodeInfo(
   def updateGeneralCategory(newValue: String) = this.copy(generalCategory = mergeValue(generalCategory, newValue));
   def updateBlock(newValue: String) = this.copy(block = mergeValue(block, newValue));
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
+  def updateScriptExtension(newValue: String) = this.copy(scriptExtension = mergeValue(scriptExtension, newValue));
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
   def updateEmojiPresentation() = this.copy(emojiPresentation = mergeValue(emojiPresentation, true));
@@ -113,7 +115,7 @@ object CodeInfo {
 
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None);
+                               None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

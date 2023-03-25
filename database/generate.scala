@@ -11,6 +11,7 @@ import scala.util.Using;
       fetchBidiMirroring("var/BidiMirroring.txt") ++
       fetchNameAliases("var/NameAliases.txt") ++
       fetchScripts("var/Scripts.txt") ++
+      fetchScriptExtensions("var/ScriptExtensions.txt") ++
       fetchEmojiData("var/emoji-data.txt") ++
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
       Nil
@@ -117,6 +118,24 @@ def fetchScripts(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     val scriptName = cols(1);
     (rangeFirst to rangeList).map { c =>
       (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateScript(scriptName));
+    }
+  }
+}
+
+def fetchScriptExtensions(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split("\\.\\.");
+    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
+      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
+    } else {
+      val c = Integer.parseInt(codePoints(0), 16);
+      (c, c);
+    }
+    val scriptNames = cols(1).split(" ").toSeq;
+    (rangeFirst to rangeList).flatMap { c =>
+      scriptNames.map { scriptName =>
+        (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateScriptExtension(scriptName));
+      }
     }
   }
 }
