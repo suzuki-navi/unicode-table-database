@@ -29,6 +29,7 @@ import scala.util.Using;
 
     val sequenceCodePointsInfoMap: Map[String, CodeInfo] = (
       fetchCaseFolding("var/CaseFolding.txt") ++
+      fetchSpecialCasing(singleCodePointWithBlockInfoMap, "var/SpecialCasing.txt") ++
       fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
       fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
       fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
@@ -98,26 +99,58 @@ def fetchCaseFolding(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       Seq[(String, CodeInfo => CodeInfo)](
         (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
         (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
-        (small, codeInfo => codeInfo.updateCaseFoldingOf(capital)),
+        (small, codeInfo => codeInfo.updateCaseOf(capital)),
       );
     } else if (cols(1) == "F") {
       Seq[(String, CodeInfo => CodeInfo)](
         (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
-        (small, codeInfo => codeInfo.updateCaseFoldingOf(capital)),
+        (small, codeInfo => codeInfo.updateCaseOf(capital)),
       );
     } else if (cols(1) == "S") {
       Seq[(String, CodeInfo => CodeInfo)](
         (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
-        (small, codeInfo => codeInfo.updateCaseFoldingOf(capital)),
+        (small, codeInfo => codeInfo.updateCaseOf(capital)),
       );
     } else if (cols(1) == "T") {
       Seq[(String, CodeInfo => CodeInfo)](
         (capital, codeInfo => codeInfo.updateTurkicCaseFolding(small)),
-        (small, codeInfo => codeInfo.updateCaseFoldingOf(capital)),
+        (small, codeInfo => codeInfo.updateCaseOf(capital)),
       );
     } else {
       Nil;
     }
+  }
+}
+
+def fetchSpecialCasing(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 5).flatMap { case (line, cols) =>
+    val code = cols(0);
+    val lower = cols(1);
+    val title = cols(2);
+    val upper = cols(3);
+    val conditions = cols(4);
+    var result: Seq[(String, CodeInfo => CodeInfo)] = Nil;
+    if (conditions == "") {
+      if (lower != "" && lower != code) {
+        if (codePointInfoMap(code).lowerCase == None) {
+          result = result :+ (code, codeInfo => codeInfo.updateLowerCase(lower));
+          result = result :+ (lower, codeInfo => codeInfo.updateCaseOf(code));
+        }
+      }
+      if (title != "" && title != code) {
+        if (codePointInfoMap(code).titleCase == None) {
+          result = result :+ (code, codeInfo => codeInfo.updateTitleCase(title));
+          result = result :+ (title, codeInfo => codeInfo.updateCaseOf(code));
+        }
+      }
+      if (upper != "" && upper != code) {
+        if (codePointInfoMap(code).upperCase == None) {
+          result = result :+ (code, codeInfo => codeInfo.updateUpperCase(upper));
+          result = result :+ (upper, codeInfo => codeInfo.updateCaseOf(code));
+        }
+      }
+    }
+    result;
   }
 }
 

@@ -33,7 +33,7 @@ case class CodeInfo(
   fullCaseFolding: Option[String],
   simpleCaseFolding: Option[String],
   turkicCaseFolding: Option[String],
-  caseFoldingOf: Option[Seq[String]],
+  caseOf: Option[Seq[String]],
 
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
@@ -81,7 +81,7 @@ case class CodeInfo(
   def updateFullCaseFolding(newValue: String) = this.copy(fullCaseFolding = mergeValue(fullCaseFolding, newValue));
   def updateSimpleCaseFolding(newValue: String) = this.copy(simpleCaseFolding = mergeValue(simpleCaseFolding, newValue));
   def updateTurkicCaseFolding(newValue: String) = this.copy(turkicCaseFolding = mergeValue(turkicCaseFolding, newValue));
-  def updateCaseFoldingOf(newValue: String) = this.copy(caseFoldingOf = mergeValue(caseFoldingOf, newValue));
+  def updateCaseOf(newValue: String) = this.copy(caseOf = mergeValue(caseOf, newValue));
 
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
@@ -113,6 +113,7 @@ case class CodeInfo(
   @scala.annotation.targetName("mergeValueSeq")
   private[this] def mergeValue(currValue: Option[Seq[String]], newValue: String): Option[Seq[String]] = {
     currValue match {
+      case Some(seq) if (seq.contains(newValue)) => Some(seq);
       case Some(seq) => Some(seq :+ newValue);
       case None => Some(Seq(newValue));
     }
