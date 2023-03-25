@@ -27,6 +27,10 @@ case class CodeInfo(
   script: Option[String],
   scriptExtension: Option[Seq[String]],
 
+  fullCaseFolding: Option[String],
+  simpleCaseFolding: Option[String],
+  turkicCaseFolding: Option[String],
+
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
 
@@ -66,8 +70,14 @@ case class CodeInfo(
   def updateBlock(newValue: String) = this.copy(block = mergeValue(block, newValue));
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
   def updateScriptExtension(newValue: String) = this.copy(scriptExtension = mergeValue(scriptExtension, newValue));
+
+  def updateFullCaseFolding(newValue: String) = this.copy(fullCaseFolding = mergeValue(fullCaseFolding, newValue));
+  def updateSimpleCaseFolding(newValue: String) = this.copy(simpleCaseFolding = mergeValue(simpleCaseFolding, newValue));
+  def updateTurkicCaseFolding(newValue: String) = this.copy(turkicCaseFolding = mergeValue(turkicCaseFolding, newValue));
+
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
+
   def updateEmojiPresentation() = this.copy(emojiPresentation = mergeValue(emojiPresentation, true));
   def updateEmojiModifierBase() = this.copy(emojiModifierBase = mergeValue(emojiModifierBase, true));
   def updateEmojiGroup(newValue: String) = this.copy(emojiGroup = mergeValue(emojiGroup, newValue));
@@ -115,7 +125,7 @@ object CodeInfo {
 
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None);
+                               None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

@@ -28,6 +28,7 @@ import scala.util.Using;
     }
 
     val sequenceCodePointsInfoMap: Map[String, CodeInfo] = (
+      fetchCaseFolding("var/CaseFolding.txt") ++
       fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
       fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
       fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
@@ -72,6 +73,33 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     ) ++ name.map(name => (code, (codeInfo: CodeInfo) => {
       codeInfo.updateNameDefault(name);
     }));
+  }
+}
+
+def fetchCaseFolding(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 4).flatMap { case (line, cols) =>
+    val capital = cols(0);
+    val small = cols(2);
+    if (cols(1) == "C") {
+      Seq[(String, CodeInfo => CodeInfo)](
+        (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
+        (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
+      );
+    } else if (cols(1) == "F") {
+      Seq[(String, CodeInfo => CodeInfo)](
+        (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
+      );
+    } else if (cols(1) == "S") {
+      Seq[(String, CodeInfo => CodeInfo)](
+        (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
+      );
+    } else if (cols(1) == "T") {
+      Seq[(String, CodeInfo => CodeInfo)](
+        (capital, codeInfo => codeInfo.updateTurkicCaseFolding(small)),
+      );
+    } else {
+      Nil;
+    }
   }
 }
 

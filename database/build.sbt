@@ -11,7 +11,7 @@ lazy val root = project
     libraryDependencies += "org.scalameta" %% "munit" % "0.7.29" % Test
   )
 
-scalacOptions ++= Seq("-deprecation")
+scalacOptions ++= Seq("-deprecation", "-Xmax-inlines", "64")
 
 libraryDependencies += "io.circe" %% "circe-core" % "0.14.3"
 libraryDependencies += "io.circe" %% "circe-generic" % "0.14.3"
