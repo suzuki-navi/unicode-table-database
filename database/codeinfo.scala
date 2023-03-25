@@ -42,6 +42,8 @@ case class CodeInfo(
   cantoneseReading: Option[String],
   koreanReading: Option[Seq[String]],
 
+  koreanHanja: Option[Seq[String]],
+
   html: Option[String],
   option: Option[Seq[String]],
 
@@ -72,6 +74,7 @@ case class CodeInfo(
   def updateMandarinReading(newValue: String) = this.copy(mandarinReading = mergeValue(mandarinReading, newValue));
   def updateCantoneseReading(newValue: String) = this.copy(cantoneseReading = mergeValue(cantoneseReading, newValue));
   def updateKoreanReading(newValue: String) = this.copy(koreanReading = mergeValue(koreanReading, newValue));
+  def updateKoreanHanja(newValue: String) = this.copy(koreanHanja = mergeValue(koreanHanja, newValue));
   def updateHtml(newValue: String) = this.copy(html = mergeValue(html, newValue));
   def updateOption(newValue: String) = this.copy(option = mergeValue(option, newValue));
 
@@ -110,7 +113,7 @@ object CodeInfo {
 
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
-                               None, None);
+                               None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

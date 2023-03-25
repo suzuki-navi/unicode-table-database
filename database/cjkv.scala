@@ -20,7 +20,7 @@ def fetchUnihanReadings(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       }
     } else if (category == "kHangul") {
       val readings = cols(2).split(" ").map(_.trim).filter(_.length > 0);
-      readings.map { r =>
+      readings.flatMap { r =>
         val reading = {
           val p = r.indexOf(":");
           if (p >= 0) {
@@ -29,7 +29,18 @@ def fetchUnihanReadings(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
             r;
           }
         }
-        (code, (codeInfo: CodeInfo) => codeInfo.updateKoreanReading(reading));
+        if (reading.length == 1) {
+          val hangulCode = codePointToCode(reading(0));
+          val hanja = code;
+          IndexedSeq(
+            (code, (codeInfo: CodeInfo) => codeInfo.updateKoreanReading(reading)),
+            (hangulCode, (codeInfo: CodeInfo) => codeInfo.updateKoreanHanja(hanja)),
+          );
+        } else {
+          IndexedSeq(
+            (code, (codeInfo: CodeInfo) => codeInfo.updateKoreanReading(reading)),
+          );
+        }
       }
     } else {
       Nil;
