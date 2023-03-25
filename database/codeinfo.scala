@@ -27,9 +27,13 @@ case class CodeInfo(
   script: Option[String],
   scriptExtension: Option[Seq[String]],
 
+  upperCase: Option[String],
+  lowerCase: Option[String],
+  titleCase: Option[String],
   fullCaseFolding: Option[String],
   simpleCaseFolding: Option[String],
   turkicCaseFolding: Option[String],
+  caseFoldingOf: Option[Seq[String]],
 
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
@@ -71,9 +75,13 @@ case class CodeInfo(
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
   def updateScriptExtension(newValue: String) = this.copy(scriptExtension = mergeValue(scriptExtension, newValue));
 
+  def updateUpperCase(newValue: String) = this.copy(upperCase = mergeValue(upperCase, newValue));
+  def updateLowerCase(newValue: String) = this.copy(lowerCase = mergeValue(lowerCase, newValue));
+  def updateTitleCase(newValue: String) = this.copy(titleCase = mergeValue(titleCase, newValue));
   def updateFullCaseFolding(newValue: String) = this.copy(fullCaseFolding = mergeValue(fullCaseFolding, newValue));
   def updateSimpleCaseFolding(newValue: String) = this.copy(simpleCaseFolding = mergeValue(simpleCaseFolding, newValue));
   def updateTurkicCaseFolding(newValue: String) = this.copy(turkicCaseFolding = mergeValue(turkicCaseFolding, newValue));
+  def updateCaseFoldingOf(newValue: String) = this.copy(caseFoldingOf = mergeValue(caseFoldingOf, newValue));
 
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
@@ -125,7 +133,7 @@ object CodeInfo {
 
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None, None, None);
+                               None, None, None, None, None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

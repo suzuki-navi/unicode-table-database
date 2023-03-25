@@ -63,16 +63,30 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     val name = cols(1);
     !(name.startsWith("<") && name != "<control>");
   }.flatMap { case (line, cols) =>
+    var result: Seq[(String, CodeInfo => CodeInfo)] = Nil;
     val code = cols(0);
-    val name = if (cols(1) == "<control>") None else Some(cols(1));
+    val name = cols(1);
     val generalCategory = cols(2);
     val bidiClass = cols(4);
-    Seq[(String, CodeInfo => CodeInfo)](
-      (code, codeInfo => codeInfo.updateGeneralCategory(generalCategory)),
-      (code, codeInfo => codeInfo.updateBidiClass(bidiClass)),
-    ) ++ name.map(name => (code, (codeInfo: CodeInfo) => {
-      codeInfo.updateNameDefault(name);
-    }));
+    val upperCase = cols(12);
+    val lowerCase = cols(13);
+    val titleCase = cols(14);
+
+    if (name != "<control>") {
+      result = result :+ (code, codeInfo => codeInfo.updateNameDefault(name));
+    }
+    result = result :+ (code, codeInfo => codeInfo.updateGeneralCategory(generalCategory));
+    result = result :+ (code, codeInfo => codeInfo.updateBidiClass(bidiClass));
+    if (upperCase != "") {
+      result = result :+ (code, codeInfo => codeInfo.updateUpperCase(upperCase));
+    }
+    if (lowerCase != "") {
+      result = result :+ (code, codeInfo => codeInfo.updateLowerCase(lowerCase));
+    }
+    if (titleCase != "") {
+      result = result :+ (code, codeInfo => codeInfo.updateTitleCase(titleCase));
+    }
+    result;
   }
 }
 
@@ -84,18 +98,22 @@ def fetchCaseFolding(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       Seq[(String, CodeInfo => CodeInfo)](
         (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
         (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
+        (small, codeInfo => codeInfo.updateCaseFoldingOf(capital)),
       );
     } else if (cols(1) == "F") {
       Seq[(String, CodeInfo => CodeInfo)](
         (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
+        (small, codeInfo => codeInfo.updateCaseFoldingOf(capital)),
       );
     } else if (cols(1) == "S") {
       Seq[(String, CodeInfo => CodeInfo)](
         (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
+        (small, codeInfo => codeInfo.updateCaseFoldingOf(capital)),
       );
     } else if (cols(1) == "T") {
       Seq[(String, CodeInfo => CodeInfo)](
         (capital, codeInfo => codeInfo.updateTurkicCaseFolding(small)),
+        (small, codeInfo => codeInfo.updateCaseFoldingOf(capital)),
       );
     } else {
       Nil;
