@@ -35,6 +35,7 @@ import scala.util.Using;
       fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
       fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
       fetchEmojiTest(singleCodePointWithBlockInfoMap, "var/emoji-test.txt") ++
+      combineHanguleSyllables() ++
       Nil
     ).foldLeft(singleCodePointWithBlockInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
@@ -469,6 +470,10 @@ def buildCombiningName(codePoints: Seq[Int], codePointInfoMap: Map[String, CodeI
   } else {
     Some(nameOpts.map(_.get).mkString("; "));
   }
+}
+
+def codePointsToCode(codePoints: Seq[Int]): String = {
+  codePoints.map(codePointToCode).mkString(" ");
 }
 
 def codePointToCode(codePoint: Int): String = {
