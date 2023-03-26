@@ -12,6 +12,7 @@ import scala.util.Using;
       fetchNameAliases("var/NameAliases.txt") ++
       fetchScripts("var/Scripts.txt") ++
       fetchScriptExtensions("var/ScriptExtensions.txt") ++
+      fetchPropList("var/PropList.txt") ++
       fetchEmojiData("var/emoji-data.txt") ++
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
       Nil
@@ -105,12 +106,15 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       val titleCase = cols(14);
       if (upperCase != "") {
         result = result :+ (code, codeInfo => codeInfo.updateUpperCase(upperCase));
+        result = result :+ (upperCase, codeInfo => codeInfo.updateCaseOf(code));
       }
       if (lowerCase != "") {
         result = result :+ (code, codeInfo => codeInfo.updateLowerCase(lowerCase));
+        result = result :+ (lowerCase, codeInfo => codeInfo.updateCaseOf(code));
       }
       if (titleCase != "") {
         result = result :+ (code, codeInfo => codeInfo.updateTitleCase(titleCase));
+        result = result :+ (titleCase, codeInfo => codeInfo.updateCaseOf(code));
       }
     }
 
@@ -264,6 +268,22 @@ def fetchScriptExtensions(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       scriptNames.map { scriptName =>
         (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateScriptExtension(scriptName));
       }
+    }
+  }
+}
+
+def fetchPropList(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split("\\.\\.");
+    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
+      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
+    } else {
+      val c = Integer.parseInt(codePoints(0), 16);
+      (c, c);
+    }
+    val optionName = cols(1);
+    (rangeFirst to rangeList).map { c =>
+      (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateOption(optionName));
     }
   }
 }
