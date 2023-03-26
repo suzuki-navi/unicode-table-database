@@ -40,13 +40,30 @@ import scala.util.Using;
       CodeInfo.updated(infoMap, code)(updator);
     }
 
+    val sequenceCodePointsWithDecompositionMappingInfoMap: Map[String, CodeInfo] = {
+      val infoMap1 = sequenceCodePointsInfoMap;
+      val infoMap2: Map[String, CodeInfo] = (
+        selectDecompositionMapping(infoMap1)
+      ).foldLeft(infoMap1) { (infoMap, entry) =>
+        val (code, updator) = entry;
+        CodeInfo.updated(infoMap, code)(updator);
+      }
+      val infoMap3: Map[String, CodeInfo] = (
+        selectCompositionMapping(infoMap2)
+      ).foldLeft(infoMap2) { (infoMap, entry) =>
+        val (code, updator) = entry;
+        CodeInfo.updated(infoMap, code)(updator);
+      }
+      infoMap3;
+    }
+
     val codePointInfoMap: Map[String, CodeInfo] = (
-      selectMathematicalSymbols(sequenceCodePointsInfoMap) ++
-      selectArrowSymbols(sequenceCodePointsInfoMap) ++
-      selectEmojiCharacters(sequenceCodePointsInfoMap) ++
-      selectCharacterInfoName(sequenceCodePointsInfoMap) ++
+      selectMathematicalSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      selectArrowSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      selectEmojiCharacters(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      selectCharacterInfoName(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       Nil
-    ).foldLeft(sequenceCodePointsInfoMap) { (infoMap, entry) =>
+    ).foldLeft(sequenceCodePointsWithDecompositionMappingInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
       CodeInfo.updated(infoMap, code)(updator);
     }
@@ -97,6 +114,13 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       }
     }
 
+    if (cols(3) != "") {
+      val canonicalCombiningClass = Integer.parseInt(cols(3));
+      if (canonicalCombiningClass != 0) {
+        result = result :+ (code, codeInfo => codeInfo.updateCanonicalCombiningClass(canonicalCombiningClass));
+      }
+    }
+
     if (cols(5) != "") {
       val cs = cols(5).split(" ").toSeq;
       val cs0 = cs(0);
@@ -105,7 +129,7 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
         val decompositionMapping = cs.slice(1, cs.length);
         (decompositionType, decompositionMapping);
       } else {
-        ("default", cs);
+        ("canonical", cs);
       }
       val decompositionMappingStr = decompositionMapping.mkString(" ");
       result = result :+ (code, codeInfo => codeInfo.
@@ -284,6 +308,53 @@ def selectCharacterInfoName(codePointInfoMap: Map[String, CodeInfo]): Seq[(Strin
       (code, (codeInfo: CodeInfo) => codeInfo.updateName(name));
     }
   }
+}
+
+def selectDecompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
+  def fetchDecompositionMapping(code: String, isCanonical: Boolean): String = {
+    val info = codePointInfoMap(code);
+    info.decompositionMapping match {
+      case None => code;
+      case Some(decompositionMapping) =>
+        if (isCanonical && info.decompositionType != Some("canonical")) {
+          code;
+        } else {
+          val mapping = decompositionMapping.split(" ");
+          mapping.map(fetchDecompositionMapping(_, isCanonical)).mkString(" ");
+        }
+    }
+  }
+  def reorder(code: String): String = {
+    val c1: Seq[(Int, String, Int)] = code.split(" ").toSeq.zipWithIndex.map { case (c, idx) =>
+      (idx, c, codePointInfoMap(c).canonicalCombiningClass.getOrElse(0));
+    }
+    val baseIdxList: Seq[Int] = c1.filter(t => t._1 == 0 || t._3 == 0).map(_._1);
+    (0 until baseIdxList.size).map { idx =>
+      val start = baseIdxList(idx);
+      val end = if (idx == baseIdxList.size - 1) c1.size else baseIdxList(idx + 1);
+      c1.slice(start, end).sortBy(t => (t._3, t._1)).map(_._2).mkString(" ");
+    }.mkString(" ");
+  }
+  codePointInfoMap.toSeq.flatMap { case (code, info) =>
+    info.decompositionMapping match {
+      case None => Nil;
+      case Some(_) =>
+        val nfd = reorder(fetchDecompositionMapping(code, true));
+        val nfkd = reorder(fetchDecompositionMapping(code, false));
+        var result = Seq[(String, CodeInfo => CodeInfo)]();
+        if (nfd != code) {
+          result = result :+ (code, (codeInfo: CodeInfo) => codeInfo.updateDecompositionMappingNFD(nfd));
+        }
+        if (nfkd != code) {
+          result = result :+ (code, (codeInfo: CodeInfo) => codeInfo.updateDecompositionMappingNFKD(nfkd));
+        }
+        result;
+    }
+  }
+}
+
+def selectCompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
+  Nil; // TODO
 }
 
 def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {

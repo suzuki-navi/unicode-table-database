@@ -35,8 +35,11 @@ case class CodeInfo(
   turkicCaseFolding: Option[String],
   caseOf: Option[Seq[String]],
 
+  canonicalCombiningClass: Option[Int],
   decompositionType: Option[String],
   decompositionMapping: Option[String],
+  decompositionMappingNFD: Option[String],
+  decompositionMappingNFKD: Option[String],
 
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
@@ -86,8 +89,11 @@ case class CodeInfo(
   def updateTurkicCaseFolding(newValue: String) = this.copy(turkicCaseFolding = mergeValue(turkicCaseFolding, newValue));
   def updateCaseOf(newValue: String) = this.copy(caseOf = mergeValue(caseOf, newValue));
 
+  def updateCanonicalCombiningClass(newValue: Int) = this.copy(canonicalCombiningClass = mergeValue(canonicalCombiningClass, newValue));
   def updateDecompositionType(newValue: String) = this.copy(decompositionType = mergeValue(decompositionType, newValue));
   def updateDecompositionMapping(newValue: String) = this.copy(decompositionMapping = mergeValue(decompositionMapping, newValue));
+  def updateDecompositionMappingNFD(newValue: String) = this.copy(decompositionMappingNFD = mergeValue(decompositionMappingNFD, newValue));
+  def updateDecompositionMappingNFKD(newValue: String) = this.copy(decompositionMappingNFKD = mergeValue(decompositionMappingNFKD, newValue));
 
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
@@ -134,6 +140,15 @@ case class CodeInfo(
     }
   }
 
+  @scala.annotation.targetName("mergeValueInt")
+  private[this] def mergeValue(currValue: Option[Int], newValue: Int): Option[Int] = {
+    currValue match {
+      case Some(v) if (v == newValue) => currValue;
+      case Some(v) => throw new Exception("%s != %s".format(v, newValue));
+      case None => Some(newValue);
+    }
+  }
+
 }
 
 object CodeInfo {
@@ -141,7 +156,7 @@ object CodeInfo {
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
-                               None, None);
+                               None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));
