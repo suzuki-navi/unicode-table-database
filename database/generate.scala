@@ -13,6 +13,7 @@ import scala.util.Using;
       fetchScripts("var/Scripts.txt") ++
       fetchScriptExtensions("var/ScriptExtensions.txt") ++
       fetchPropList("var/PropList.txt") ++
+      fetchDerivedNormalizationProps("var/DerivedNormalizationProps.txt") ++
       fetchEmojiData("var/emoji-data.txt") ++
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
       Nil
@@ -285,6 +286,26 @@ def fetchPropList(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     val optionName = cols(1);
     (rangeFirst to rangeList).map { c =>
       (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateOption(optionName));
+    }
+  }
+}
+
+def fetchDerivedNormalizationProps(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split("\\.\\.");
+    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
+      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
+    } else {
+      val c = Integer.parseInt(codePoints(0), 16);
+      (c, c);
+    }
+    val propName = cols(1);
+    if (propName == "Full_Composition_Exclusion") {
+      (rangeFirst to rangeList).map { c =>
+        (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateOption("Composition_Exclusion"));
+      }
+    } else {
+      Nil;
     }
   }
 }
