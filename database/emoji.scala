@@ -14,12 +14,12 @@ def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
         if (codePoint >= 0x1F1E6 && codePoint <= 0x1F1FF) { // Regional Indicator
           val name = "RI " + (codePoint - 0x1F1E6 + 0x41).asInstanceOf[Char].toString;
           Seq(
-            (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+            (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiPresentation")),
             (code, (codeInfo: CodeInfo) => codeInfo.updateNameAbbreviation(name)),
           );
         } else {
           Seq(
-            (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+            (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiPresentation")),
             (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
           );
         }
@@ -30,7 +30,7 @@ def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       (rangeFirst to rangeList).flatMap { codePoint =>
         val code = codePointToCode(codePoint);
         Seq(
-          (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiModifierBase()),
+          (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiModifierBase")),
           // (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiFont")),
         );
       }
@@ -137,17 +137,13 @@ def fetchEmojiTest(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(
 
 def selectEmojiCharacters(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
   codePointInfoMap.toSeq.flatMap { case (code, info) =>
-    def isEmojiPresentation(info: CodeInfo): Boolean = {
-      //info.emojiPresentation == Some(true) || info.emojiModifierBase == Some(true);
-      info.emojiPresentation == Some(true);
-    }
     def codeToHtml(code: String): String = {
       code.split(" ").map(Integer.parseInt(_, 16)).map(i => "&#x" + Integer.toString(i, 16).toUpperCase + ";").mkString("");
     }
     if (info.option.getOrElse(Nil).contains("emojiFont")) {
       if (code.endsWith(" FE0F")) {
         val parentCode = code.substring(0, code.length - 5);
-        if (isEmojiPresentation(codePointInfoMap(parentCode))) {
+        if (codePointInfoMap(parentCode).option.getOrElse(Nil).contains("emojiPresentation")) {
           val html = codeToHtml(code);
           IndexedSeq(
             (parentCode, (codeInfo: CodeInfo) => codeInfo.updateHtml(html)),
@@ -169,7 +165,7 @@ def selectEmojiCharacters(codePointInfoMap: Map[String, CodeInfo]): Seq[(String,
         val parentCode = code.substring(0, code.length - 5);
         if (parentCode.length == 4 && Integer.parseInt(parentCode, 16) <= 0x7F) {
           IndexedSeq.empty;
-        } else if (!isEmojiPresentation(codePointInfoMap(parentCode))) {
+        } else if (!codePointInfoMap(parentCode).option.getOrElse(Nil).contains("emojiPresentation")) {
           val html = codeToHtml(code);
           IndexedSeq(
             (parentCode, (codeInfo: CodeInfo) => codeInfo.updateHtml(html)),

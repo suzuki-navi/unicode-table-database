@@ -317,7 +317,7 @@ def fetchEmojiZwjSequences(codePointInfoMap: Map[String, CodeInfo], path: String
     val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
     val name = cols(2);
     IndexedSeq(
-      (code, (codeInfo: CodeInfo) => codeInfo.updateEmojiPresentation()),
+      (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiPresentation")),
       (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
       (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
     );

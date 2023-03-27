@@ -48,9 +48,6 @@ case class CodeInfo(
 
   bidiMirroring: Option[String],
 
-  emojiPresentation: Option[Boolean],
-  emojiModifierBase: Option[Boolean],
-
   emojiGroup: Option[String],
   emojiSubgroup: Option[String],
 
@@ -102,8 +99,6 @@ case class CodeInfo(
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
 
-  def updateEmojiPresentation() = this.copy(emojiPresentation = mergeValue(emojiPresentation, true));
-  def updateEmojiModifierBase() = this.copy(emojiModifierBase = mergeValue(emojiModifierBase, true));
   def updateEmojiGroup(newValue: String) = this.copy(emojiGroup = mergeValue(emojiGroup, newValue));
   def updateEmojiSubgroup(newValue: String) = this.copy(emojiSubgroup = mergeValue(emojiSubgroup, newValue));
   def updateMeaning(newValue: String) = this.copy(meaning = mergeValue(meaning, newValue));
@@ -228,7 +223,7 @@ object CodeInfo {
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None, None, None);
+                               None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));
