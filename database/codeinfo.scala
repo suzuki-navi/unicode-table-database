@@ -40,6 +40,8 @@ case class CodeInfo(
   decompositionMapping: Option[String],
   decompositionMappingNFD: Option[String],
   decompositionMappingNFKD: Option[String],
+  canonicallyCompositionMapping: Option[String],
+  otherCompositionMapping: Option[Seq[String]],
 
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
@@ -67,7 +69,7 @@ case class CodeInfo(
   def updateName(newValue: String) = this.copy(name = mergeValue(name, newValue));
   def updateNameDefault(newValue: String) = this.copy(nameDefault = mergeValue(nameDefault, newValue));
   def updateNameCorrection(newValue: String) = this.copy(nameCorrection = mergeValue(nameCorrection, newValue));
-  def appendNameControl(newValue: String) = this.copy(nameControl = mergeValue(nameControl, newValue));
+  def updateNameControl(newValue: String) = this.copy(nameControl = mergeValue(nameControl, newValue));
   def updateNameAlternate(newValue: String) = this.copy(nameAlternate = mergeValue(nameAlternate, newValue));
   def updateNameFigment(newValue: String) = this.copy(nameFigment = mergeValue(nameFigment, newValue));
   def updateNameAbbreviation(newValue: String) = this.copy(nameAbbreviation = mergeValue(nameAbbreviation, newValue));
@@ -94,6 +96,8 @@ case class CodeInfo(
   def updateDecompositionMapping(newValue: String) = this.copy(decompositionMapping = mergeValue(decompositionMapping, newValue));
   def updateDecompositionMappingNFD(newValue: String) = this.copy(decompositionMappingNFD = mergeValue(decompositionMappingNFD, newValue));
   def updateDecompositionMappingNFKD(newValue: String) = this.copy(decompositionMappingNFKD = mergeValue(decompositionMappingNFKD, newValue));
+  def updateCanonicallyCompositionMapping(newValue: String) = this.copy(canonicallyCompositionMapping = mergeValue(canonicallyCompositionMapping, newValue));
+  def updateOtherCompositionMapping(newValue: String) = this.copy(otherCompositionMapping = mergeValue(otherCompositionMapping, newValue));
 
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
@@ -149,6 +153,74 @@ case class CodeInfo(
     }
   }
 
+  def updateForCanonicallyComposition(other: CodeInfo): CodeInfo = {
+    var result: CodeInfo = this;
+    other.nameCorrection.foreach { newValue =>
+      result = result.updateNameCorrection(newValue);
+    }
+    other.nameControl.getOrElse(Nil).foreach { newValue =>
+      result = result.updateNameControl(newValue);
+    }
+    other.nameAlternate.foreach { newValue =>
+      result = result.updateNameAlternate(newValue);
+    }
+    other.nameFigment.foreach { newValue =>
+      result = result.updateNameFigment(newValue);
+    }
+    other.nameAbbreviation.getOrElse(Nil).foreach { newValue =>
+      result = result.updateNameAbbreviation(newValue);
+    }
+    other.nameEmoji.foreach { newValue =>
+      result = result.updateNameEmoji(newValue);
+    }
+    other.nameCustom.foreach { newValue =>
+      result = result.updateNameCustom(Some(newValue));
+    }
+    other.generalCategory.foreach { newValue =>
+      result = result.updateGeneralCategory(newValue);
+    }
+    other.script.foreach { newValue =>
+      result = result.updateScript(newValue);
+    }
+    other.scriptExtension.getOrElse(Nil).foreach { newValue =>
+      result = result.updateScriptExtension(newValue);
+    }
+    other.upperCase.foreach { newValue =>
+      result = result.updateUpperCase(newValue);
+    }
+    other.lowerCase.foreach { newValue =>
+      result = result.updateLowerCase(newValue);
+    }
+    other.titleCase.foreach { newValue =>
+      result = result.updateTitleCase(newValue);
+    }
+    other.fullCaseFolding.foreach { newValue =>
+      result = result.updateFullCaseFolding(newValue);
+    }
+    other.simpleCaseFolding.foreach { newValue =>
+      result = result.updateSimpleCaseFolding(newValue);
+    }
+    other.turkicCaseFolding.foreach { newValue =>
+      result = result.updateTurkicCaseFolding(newValue);
+    }
+    other.bidiClass.foreach { newValue =>
+      result = result.updateBidiClass(newValue);
+    }
+    other.bidiMirroring.foreach { newValue =>
+      result = result.updateBidiMirroring(newValue);
+    }
+    other.emojiGroup.foreach { newValue =>
+      result = result.updateEmojiGroup(newValue);
+    }
+    other.emojiSubgroup.foreach { newValue =>
+      result = result.updateEmojiSubgroup(newValue);
+    }
+    other.html.foreach { newValue =>
+      result = result.updateHtml(newValue);
+    }
+    result;
+  }
+
 }
 
 object CodeInfo {
@@ -156,7 +228,7 @@ object CodeInfo {
   private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
                                None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None);
+                               None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

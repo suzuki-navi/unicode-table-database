@@ -16,6 +16,7 @@ import scala.util.Using;
       fetchDerivedNormalizationProps("var/DerivedNormalizationProps.txt") ++
       fetchEmojiData("var/emoji-data.txt") ++
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
+      generateHanguleSyllables() ++
       Nil
     ).foldLeft(Map.empty) { (infoMap, entry) =>
       val (code, updator) = entry;
@@ -36,7 +37,7 @@ import scala.util.Using;
       fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
       fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
       fetchEmojiTest(singleCodePointWithBlockInfoMap, "var/emoji-test.txt") ++
-      combineHanguleSyllables() ++
+      combineHangulSyllables(singleCodePointWithBlockInfoMap) ++
       Nil
     ).foldLeft(singleCodePointWithBlockInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
@@ -227,7 +228,7 @@ def fetchNameAliases(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       case "correction" =>
         Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameCorrection(name)));
       case "control" =>
-        Seq((code, (codeInfo: CodeInfo) => codeInfo.appendNameControl(name)));
+        Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameControl(name)));
       case "alternate" =>
         Seq((code, (codeInfo: CodeInfo) => codeInfo.updateNameAlternate(name)));
       case "figment" =>
@@ -396,7 +397,27 @@ def selectDecompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(St
 }
 
 def selectCompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
-  Nil; // TODO
+  var result: Seq[(String, CodeInfo => CodeInfo)] = Nil;
+  codePointInfoMap.toSeq.sortBy(t => codeSortKey(t._1)).foreach { case (code, info) =>
+    (info.decompositionType, info.decompositionMapping) match {
+      case (Some("canonical"), Some(decompositionMapping)) =>
+        if (info.option.getOrElse(Nil).contains("Composition_Exclusion")) {
+          result = result :+ (decompositionMapping, codeInfo => codeInfo.
+            updateOtherCompositionMapping(code));
+        } else {
+          result = result :+ (decompositionMapping, codeInfo => codeInfo.
+            updateCanonicallyCompositionMapping(code));
+          result = result :+ (decompositionMapping, codeInfo => codeInfo.
+            updateForCanonicallyComposition(codePointInfoMap(code)));
+        }
+      case (_, Some(decompositionMapping)) =>
+        result = result :+ (decompositionMapping, codeInfo => codeInfo.
+          updateOtherCompositionMapping(code));
+      case (_, None) =>
+        // nothing
+    }
+  }
+  result;
 }
 
 def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
@@ -506,20 +527,22 @@ def codePointToCode(codePoint: Int): String = {
   }
 }
 
+def codeSortKey(code: String): String = {
+  code.split(" ").toSeq.map { c =>
+    if (c.length == 4) {
+      "00" + c;
+    } else if (c.length == 5) {
+      "0" + c;
+    } else if (c.length == 6) {
+      c;
+    } else {
+      throw new Exception(code);
+    }
+  }.mkString("");
+}
+
 def output(infoMap: Map[String, CodeInfo], path: String): Unit = {
-  val codeList = infoMap.keys.toIndexedSeq.sortBy(code => {
-    code.split(" ").toSeq.map { c =>
-      if (c.length == 4) {
-        "00" + c;
-      } else if (c.length == 5) {
-        "0" + c;
-      } else if (c.length == 6) {
-        c;
-      } else {
-        throw new Exception(code);
-      }
-    }.mkString("");
-  });
+  val codeList = infoMap.keys.toIndexedSeq.sortBy(codeSortKey);
 
   println(path);
   val fh = new PrintWriter(path);
