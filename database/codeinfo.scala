@@ -220,10 +220,10 @@ case class CodeInfo(
 
 object CodeInfo {
 
-  private def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None, None, None, None, None, None, None,
-                               None, None, None, None, None);
+  def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
+                       None, None, None, None, None, None, None, None, None, None, None,
+                       None, None, None, None, None, None, None, None, None, None, None,
+                       None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

@@ -75,7 +75,7 @@ import scala.util.Using;
     codePointInfoMap;
   }
 
-  val infoMap: Map[String, CodeInfo] = codePointInfoMap;
+  val infoMap: Map[String, CodeInfo] = filterFinalInfoMap(codePointInfoMap);
 
   output(infoMap, "data/all.json");
 }
@@ -418,6 +418,18 @@ def selectCompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(Stri
     }
   }
   result;
+}
+
+def filterFinalInfoMap(codePointInfoMap: Map[String, CodeInfo]): Map[String, CodeInfo] = {
+  val ignoreList = Seq(
+    CodeInfo.empty.updateOption("Noncharacter_Code_Point"),
+    CodeInfo.empty.updateOption("Noncharacter_Code_Point").updateBlock("Supplementary Private Use Area-A"),
+    CodeInfo.empty.updateOption("Noncharacter_Code_Point").updateBlock("Supplementary Private Use Area-B"),
+    CodeInfo.empty.updateOption("Other_Default_Ignorable_Code_Point"),
+  );
+  codePointInfoMap.filter { case (code, info) =>
+    !ignoreList.contains(info);
+  }
 }
 
 def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
