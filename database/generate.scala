@@ -66,6 +66,7 @@ import scala.util.Using;
       selectArrowSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       selectEmojiCharacters(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       selectCharacterInfoName(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      assignRegion(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       Nil
     ).foldLeft(sequenceCodePointsWithDecompositionMappingInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
