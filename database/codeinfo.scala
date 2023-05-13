@@ -49,6 +49,10 @@ case class CodeInfo(
 
   bidiMirroring: Option[String],
 
+  // 絵文字用のフォントで表示すべきかどうか
+  emojiFont: Option[Boolean],
+  emojiPresentation: Option[Boolean],
+  emojiModifierBase: Option[Boolean],
   emojiGroup: Option[String],
   emojiSubgroup: Option[String],
 
@@ -101,6 +105,9 @@ case class CodeInfo(
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
 
+  def updateEmojiFont(newValue: Boolean) = this.copy(emojiFont = mergeValue(emojiFont, newValue));
+  def updateEmojiPresentation(newValue: Boolean) = this.copy(emojiPresentation = mergeValue(emojiPresentation, newValue));
+  def updateEmojiModifierBase(newValue: Boolean) = this.copy(emojiModifierBase = mergeValue(emojiModifierBase, newValue));
   def updateEmojiGroup(newValue: String) = this.copy(emojiGroup = mergeValue(emojiGroup, newValue));
   def updateEmojiSubgroup(newValue: String) = this.copy(emojiSubgroup = mergeValue(emojiSubgroup, newValue));
   def updateMeaning(newValue: String) = this.copy(meaning = mergeValue(meaning, newValue));
@@ -209,6 +216,15 @@ case class CodeInfo(
     other.bidiMirroring.foreach { newValue =>
       result = result.updateBidiMirroring(newValue);
     }
+    other.emojiFont.foreach { newValue =>
+      result = result.updateEmojiFont(newValue);
+    }
+    other.emojiPresentation.foreach { newValue =>
+      result = result.updateEmojiPresentation(newValue);
+    }
+    other.emojiModifierBase.foreach { newValue =>
+      result = result.updateEmojiModifierBase(newValue);
+    }
     other.emojiGroup.foreach { newValue =>
       result = result.updateEmojiGroup(newValue);
     }
@@ -228,7 +244,7 @@ object CodeInfo {
   def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
-                       None, None, None, None, None, None);
+                       None, None, None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

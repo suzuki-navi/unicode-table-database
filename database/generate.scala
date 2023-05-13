@@ -312,19 +312,6 @@ def fetchDerivedNormalizationProps(path: String): Seq[(String, CodeInfo => CodeI
   }
 }
 
-def fetchEmojiZwjSequences(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
-  usingDataFile(path, 3).flatMap { case (line, cols) =>
-    val codePoints = cols(0).split(" ").map(c => Integer.parseInt(c, 16)).toSeq;
-    val code = codePoints.map(c => codePointToCode(c)).mkString(" ");
-    val name = cols(2);
-    IndexedSeq(
-      (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emojiPresentation")),
-      (code, (codeInfo: CodeInfo) => codeInfo.updateOption("emoji")),
-      (code, (codeInfo: CodeInfo) => codeInfo.updateNameEmoji(name)),
-    );
-  }
-}
-
 def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
     val codePoints = cols(0).split("\\.\\.");
