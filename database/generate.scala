@@ -12,10 +12,11 @@ import scala.util.Using;
       fetchNameAliases("var/NameAliases.txt") ++
       fetchScripts("var/Scripts.txt") ++
       fetchScriptExtensions("var/ScriptExtensions.txt") ++
+      fetchDerivedNormalizationProps("var/DerivedNormalizationProps.txt") ++
+      fetchUnihanVariants("var/Unihan_Variants.txt") ++
+      fetchUnihanReadings("var/Unihan_Readings.txt") ++
       //fetchPropList("var/PropList.txt") ++
-      //fetchDerivedNormalizationProps("var/DerivedNormalizationProps.txt") ++
       //fetchEmojiData("var/emoji-data.txt") ++
-      //fetchUnihanReadings("var/Unihan_Readings.txt") ++
       //generateHanguleSyllables() ++
       Nil
     ).foldLeft(Map.empty) { (infoMap, entry) =>
@@ -23,13 +24,24 @@ import scala.util.Using;
       CodeInfo.updated(infoMap, code)(updator);
     }
 
-    // add block information only to the existing code points.
-    val singleCodePointWithBlockInfoMap: Map[String, CodeInfo] = (
-      fetchBlocks(singleCodePointInfoMap, "var/Blocks.txt") ++
-      Nil
-    ).foldLeft(singleCodePointInfoMap) { (infoMap, entry) =>
-      val (code, updator) = entry;
-      CodeInfo.updated(infoMap, code)(updator);
+    val singleCodePointWithBlockInfoMap: Map[String, CodeInfo] = {
+      val infoMap1 = singleCodePointInfoMap;
+      val infoMap2 = (
+        // add block information only to the existing code points.
+        fetchBlocks(infoMap1, "var/Blocks.txt") ++
+        Nil
+      ).foldLeft(infoMap1) { (infoMap, entry) =>
+        val (code, updator) = entry;
+        CodeInfo.updated(infoMap, code)(updator);
+      }
+      val infoMap3 = (
+        selectCJKIdeographName(infoMap2) ++
+        Nil
+      ).foldLeft(infoMap2) { (infoMap, entry) =>
+        val (code, updator) = entry;
+        CodeInfo.updated(infoMap, code)(updator);
+      }
+      infoMap3;
     }
 
     val sequenceCodePointsInfoMap: Map[String, CodeInfo] = (
@@ -217,23 +229,6 @@ def fetchScriptExtensions(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   }
 }
 
-/*
-def fetchPropList(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
-  usingDataFile(path, 2).flatMap { case (line, cols) =>
-    val codePoints = cols(0).split("\\.\\.");
-    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
-      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
-    } else {
-      val c = Integer.parseInt(codePoints(0), 16);
-      (c, c);
-    }
-    val optionName = cols(1);
-    (rangeFirst to rangeList).map { c =>
-      (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateOption(optionName));
-    }
-  }
-}
-
 def fetchDerivedNormalizationProps(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
     val codePoints = cols(0).split("\\.\\.");
@@ -250,6 +245,23 @@ def fetchDerivedNormalizationProps(path: String): Seq[(String, CodeInfo => CodeI
       }
     } else {
       Nil;
+    }
+  }
+}
+
+/*
+def fetchPropList(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split("\\.\\.");
+    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
+      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
+    } else {
+      val c = Integer.parseInt(codePoints(0), 16);
+      (c, c);
+    }
+    val optionName = cols(1);
+    (rangeFirst to rangeList).map { c =>
+      (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateOption(optionName));
     }
   }
 }
