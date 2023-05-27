@@ -43,6 +43,7 @@ def generateHanguleSyllables(): Seq[(String, CodeInfo => CodeInfo)] = {
   }
 }
 
+/*
 def combineHangulSyllables(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
   Nil;
   //println("combineHangulSyllables");
@@ -84,4 +85,4 @@ def combineHangulSyllables(codePointInfoMap: Map[String, CodeInfo]): Seq[(String
   //  }
   //}
 }
-
+*/

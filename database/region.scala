@@ -1,4 +1,5 @@
 
+/*
 def assignRegion(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
   // temporary implementation
   codePointInfoMap.toSeq.flatMap { case (code, info) =>
@@ -102,4 +103,4 @@ def assignRegion(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo
     }
   };
 }
-
+*/

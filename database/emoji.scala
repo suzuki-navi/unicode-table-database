@@ -1,4 +1,5 @@
 
+/*
 def fetchEmojiData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
     val codePoints = cols(0).split("\\.\\.");
@@ -195,3 +196,4 @@ def selectEmojiCharacters(codePointInfoMap: Map[String, CodeInfo]): Seq[(String,
     }
   }
 }
+*/

@@ -1,4 +1,4 @@
-
+/*
 def fetchUnihanReadings(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile2(path, 3).filter { case (line, cols) =>
     cols(0).startsWith("U+");
@@ -47,4 +47,4 @@ def fetchUnihanReadings(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     }
   }
 }
-
+*/

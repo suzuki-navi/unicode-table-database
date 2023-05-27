@@ -1,9 +1,9 @@
 
+/*
 def selectMathematicalSymbols(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
   codePointInfoMap.toSeq.flatMap { case (code, info) =>
     val codePoints = code.split(" ").map(c => Integer.parseInt(c, 16)).toSeq;
     val codePoint = codePoints(0);
-    /*
     if (info.generalCategory == Some("Sm")) {
       IndexedSeq(
         (code, (codeInfo: CodeInfo) => codeInfo.updateOption("math")),
@@ -44,7 +44,6 @@ def selectMathematicalSymbols(codePointInfoMap: Map[String, CodeInfo]): Seq[(Str
         (code, (codeInfo: CodeInfo) => codeInfo.updateOption("math")),
       );
     } else {
-    */
       IndexedSeq.empty;
     //}
   }
@@ -90,4 +89,4 @@ def selectArrowSymbols(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, Co
     //}
   }
 }
-
+*/

@@ -12,32 +12,34 @@ import scala.util.Using;
       fetchNameAliases("var/NameAliases.txt") ++
       fetchScripts("var/Scripts.txt") ++
       fetchScriptExtensions("var/ScriptExtensions.txt") ++
-      fetchPropList("var/PropList.txt") ++
-      fetchDerivedNormalizationProps("var/DerivedNormalizationProps.txt") ++
-      fetchEmojiData("var/emoji-data.txt") ++
-      fetchUnihanReadings("var/Unihan_Readings.txt") ++
-      generateHanguleSyllables() ++
+      //fetchPropList("var/PropList.txt") ++
+      //fetchDerivedNormalizationProps("var/DerivedNormalizationProps.txt") ++
+      //fetchEmojiData("var/emoji-data.txt") ++
+      //fetchUnihanReadings("var/Unihan_Readings.txt") ++
+      //generateHanguleSyllables() ++
       Nil
     ).foldLeft(Map.empty) { (infoMap, entry) =>
       val (code, updator) = entry;
       CodeInfo.updated(infoMap, code)(updator);
     }
 
+    // add block information only to the existing code points.
     val singleCodePointWithBlockInfoMap: Map[String, CodeInfo] = (
-      fetchBlocks(singleCodePointInfoMap, "var/Blocks.txt")
+      fetchBlocks(singleCodePointInfoMap, "var/Blocks.txt") ++
+      Nil
     ).foldLeft(singleCodePointInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
       CodeInfo.updated(infoMap, code)(updator);
     }
 
     val sequenceCodePointsInfoMap: Map[String, CodeInfo] = (
-      fetchCaseFolding("var/CaseFolding.txt") ++
-      fetchSpecialCasing(singleCodePointWithBlockInfoMap, "var/SpecialCasing.txt") ++
-      fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
-      fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
-      fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
-      fetchEmojiTest(singleCodePointWithBlockInfoMap, "var/emoji-test.txt") ++
-      combineHangulSyllables(singleCodePointWithBlockInfoMap) ++
+      //fetchCaseFolding("var/CaseFolding.txt") ++
+      //fetchSpecialCasing(singleCodePointWithBlockInfoMap, "var/SpecialCasing.txt") ++
+      //fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
+      //fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
+      //fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
+      //fetchEmojiTest(singleCodePointWithBlockInfoMap, "var/emoji-test.txt") ++
+      //combineHangulSyllables(singleCodePointWithBlockInfoMap) ++
       Nil
     ).foldLeft(singleCodePointWithBlockInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
@@ -47,13 +49,15 @@ import scala.util.Using;
     val sequenceCodePointsWithDecompositionMappingInfoMap: Map[String, CodeInfo] = {
       val infoMap1 = sequenceCodePointsInfoMap;
       val infoMap2: Map[String, CodeInfo] = (
-        selectDecompositionMapping(infoMap1)
+        //selectDecompositionMapping(infoMap1) ++
+        Nil
       ).foldLeft(infoMap1) { (infoMap, entry) =>
         val (code, updator) = entry;
         CodeInfo.updated(infoMap, code)(updator);
       }
       val infoMap3: Map[String, CodeInfo] = (
-        selectCompositionMapping(infoMap2)
+        // selectCompositionMapping(infoMap2) ++
+        Nil
       ).foldLeft(infoMap2) { (infoMap, entry) =>
         val (code, updator) = entry;
         CodeInfo.updated(infoMap, code)(updator);
@@ -62,11 +66,11 @@ import scala.util.Using;
     }
 
     val codePointInfoMap: Map[String, CodeInfo] = (
-      selectMathematicalSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
-      selectArrowSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
-      selectEmojiCharacters(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      //selectMathematicalSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      //selectArrowSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      //selectEmojiCharacters(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       selectCharacterInfoName(sequenceCodePointsWithDecompositionMappingInfoMap) ++
-      assignRegion(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      //assignRegion(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       Nil
     ).foldLeft(sequenceCodePointsWithDecompositionMappingInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
@@ -148,69 +152,6 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   }
 }
 
-def fetchCaseFolding(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
-  usingDataFile(path, 4).flatMap { case (line, cols) =>
-    val capital = cols(0);
-    val small = cols(2);
-    if (cols(1) == "C") {
-      Seq[(String, CodeInfo => CodeInfo)](
-        (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
-        (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
-        (small, codeInfo => codeInfo.updateCaseOf(capital)),
-      );
-    } else if (cols(1) == "F") {
-      Seq[(String, CodeInfo => CodeInfo)](
-        (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
-        (small, codeInfo => codeInfo.updateCaseOf(capital)),
-      );
-    } else if (cols(1) == "S") {
-      Seq[(String, CodeInfo => CodeInfo)](
-        (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
-        (small, codeInfo => codeInfo.updateCaseOf(capital)),
-      );
-    } else if (cols(1) == "T") {
-      Seq[(String, CodeInfo => CodeInfo)](
-        (capital, codeInfo => codeInfo.updateTurkicCaseFolding(small)),
-        (small, codeInfo => codeInfo.updateCaseOf(capital)),
-      );
-    } else {
-      Nil;
-    }
-  }
-}
-
-def fetchSpecialCasing(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
-  usingDataFile(path, 5).flatMap { case (line, cols) =>
-    val code = cols(0);
-    val lower = cols(1);
-    val title = cols(2);
-    val upper = cols(3);
-    val conditions = cols(4);
-    var result: Seq[(String, CodeInfo => CodeInfo)] = Nil;
-    if (conditions == "") {
-      if (lower != "" && lower != code) {
-        if (codePointInfoMap(code).lowerCase == None) {
-          result = result :+ (code, codeInfo => codeInfo.updateLowerCase(lower));
-          result = result :+ (lower, codeInfo => codeInfo.updateCaseOf(code));
-        }
-      }
-      if (title != "" && title != code) {
-        if (codePointInfoMap(code).titleCase == None) {
-          result = result :+ (code, codeInfo => codeInfo.updateTitleCase(title));
-          result = result :+ (title, codeInfo => codeInfo.updateCaseOf(code));
-        }
-      }
-      if (upper != "" && upper != code) {
-        if (codePointInfoMap(code).upperCase == None) {
-          result = result :+ (code, codeInfo => codeInfo.updateUpperCase(upper));
-          result = result :+ (upper, codeInfo => codeInfo.updateCaseOf(code));
-        }
-      }
-    }
-    result;
-  }
-}
-
 def fetchBidiMirroring(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
     val code1 = cols(0);
@@ -276,6 +217,7 @@ def fetchScriptExtensions(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   }
 }
 
+/*
 def fetchPropList(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
     val codePoints = cols(0).split("\\.\\.");
@@ -312,6 +254,70 @@ def fetchDerivedNormalizationProps(path: String): Seq[(String, CodeInfo => CodeI
   }
 }
 
+def fetchCaseFolding(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 4).flatMap { case (line, cols) =>
+    val capital = cols(0);
+    val small = cols(2);
+    if (cols(1) == "C") {
+      Seq[(String, CodeInfo => CodeInfo)](
+        (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
+        (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
+        (small, codeInfo => codeInfo.updateCaseOf(capital)),
+      );
+    } else if (cols(1) == "F") {
+      Seq[(String, CodeInfo => CodeInfo)](
+        (capital, codeInfo => codeInfo.updateFullCaseFolding(small)),
+        (small, codeInfo => codeInfo.updateCaseOf(capital)),
+      );
+    } else if (cols(1) == "S") {
+      Seq[(String, CodeInfo => CodeInfo)](
+        (capital, codeInfo => codeInfo.updateSimpleCaseFolding(small)),
+        (small, codeInfo => codeInfo.updateCaseOf(capital)),
+      );
+    } else if (cols(1) == "T") {
+      Seq[(String, CodeInfo => CodeInfo)](
+        (capital, codeInfo => codeInfo.updateTurkicCaseFolding(small)),
+        (small, codeInfo => codeInfo.updateCaseOf(capital)),
+      );
+    } else {
+      Nil;
+    }
+  }
+}
+
+def fetchSpecialCasing(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 5).flatMap { case (line, cols) =>
+    val code = cols(0);
+    val lower = cols(1);
+    val title = cols(2);
+    val upper = cols(3);
+    val conditions = cols(4);
+    var result: Seq[(String, CodeInfo => CodeInfo)] = Nil;
+    if (conditions == "") {
+      if (lower != "" && lower != code) {
+        if (codePointInfoMap(code).lowerCase == None) {
+          result = result :+ (code, codeInfo => codeInfo.updateLowerCase(lower));
+          result = result :+ (lower, codeInfo => codeInfo.updateCaseOf(code));
+        }
+      }
+      if (title != "" && title != code) {
+        if (codePointInfoMap(code).titleCase == None) {
+          result = result :+ (code, codeInfo => codeInfo.updateTitleCase(title));
+          result = result :+ (title, codeInfo => codeInfo.updateCaseOf(code));
+        }
+      }
+      if (upper != "" && upper != code) {
+        if (codePointInfoMap(code).upperCase == None) {
+          result = result :+ (code, codeInfo => codeInfo.updateUpperCase(upper));
+          result = result :+ (upper, codeInfo => codeInfo.updateCaseOf(code));
+        }
+      }
+    }
+    result;
+  }
+}
+*/
+
 def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
     val codePoints = cols(0).split("\\.\\.");
@@ -341,6 +347,7 @@ def selectCharacterInfoName(codePointInfoMap: Map[String, CodeInfo]): Seq[(Strin
   }
 }
 
+/*
 def selectDecompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
   def fetchDecompositionMapping(code: String, isCanonical: Boolean): String = {
     val info = codePointInfoMap(code);
@@ -407,6 +414,7 @@ def selectCompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(Stri
   }
   result;
 }
+*/
 
 def filterFinalInfoMap(codePointInfoMap: Map[String, CodeInfo]): Map[String, CodeInfo] = {
   val ignoreList = Seq(
@@ -493,12 +501,12 @@ def usingDataFile3(path: String, colCount: Int): Seq[(String, Option[Seq[String]
 }
 
 def selectName(info: CodeInfo): Option[String] = {
-  (info.nameDefault, info.nameCorrection, info.nameControl, info.nameEmoji, info.nameCustom) match {
+  (info.nameControl, info.nameDefault, info.nameCorrection, info.nameEmoji, info.nameCustom) match {
     case (_, _, _, _, Some(name)) => Some(name);
     case (_, _, _, Some(name), _) => Some(name);
+    case (_, _, Some(name), _, _) => Some(name);
     case (_, Some(name), _, _, _) => Some(name);
-    case (Some(name), _, _, _, _) => Some(name);
-    case (_, _, Some(seq), _, _) => Some(seq.head);
+    case (Some(seq), _, _, _, _) => Some(seq.head);
     case _ => None;
   }
 }
