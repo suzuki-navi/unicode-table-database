@@ -26,7 +26,6 @@ case class CodeInfo(
 
   script: Option[String],
   scriptExtension: Option[Seq[String]],
-  region: Option[String],
 
   upperCase: Option[String],
   lowerCase: Option[String],
@@ -95,7 +94,6 @@ case class CodeInfo(
   def updateBlock(newValue: String) = this.copy(block = mergeValue(block, newValue));
   def updateScript(newValue: String) = this.copy(script = mergeValue(script, newValue));
   def updateScriptExtension(newValue: String) = this.copy(scriptExtension = mergeValue(scriptExtension, newValue));
-  def updateRegion(newValue: String) = this.copy(region = mergeValue(region, newValue));
 
   def updateUpperCase(newValue: String) = this.copy(upperCase = mergeValue(upperCase, newValue));
   def updateLowerCase(newValue: String) = this.copy(lowerCase = mergeValue(lowerCase, newValue));
@@ -212,9 +210,6 @@ case class CodeInfo(
     other.scriptExtension.getOrElse(Nil).foreach { newValue =>
       result = result.updateScriptExtension(newValue);
     }
-    other.region.foreach { newValue =>
-      result = result.updateRegion(newValue);
-    }
     other.upperCase.foreach { newValue =>
       result = result.updateUpperCase(newValue);
     }
@@ -268,7 +263,7 @@ object CodeInfo {
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
-                       None, None, None, None, None, None, None);
+                       None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));
