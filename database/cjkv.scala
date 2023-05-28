@@ -241,9 +241,13 @@ def selectCJKIdeographName(codePointInfoMap: Map[String, CodeInfo]): Seq[(String
       } else {
         "CJK UNIFIED IDEOGRAPH-" + code;
       }
-      Some((code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(Some(name))));
+      // https://www.unicode.org/reports/tr38/tr38-33.html#BlockListing
+      Seq(
+        (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(Some(name))),
+        (code, (codeInfo: CodeInfo) => codeInfo.updateUnihanFlag(true)),
+      );
     } else {
-      None;
+      Nil;
     }
   }
 }

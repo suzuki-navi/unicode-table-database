@@ -56,13 +56,6 @@ case class CodeInfo(
   cjkTraditionalVariant: Option[Seq[String]],
   cjkZVariant: Option[Seq[String]],
 
-  // 絵文字用のフォントで表示すべきかどうか
-  emojiFont: Option[Boolean],
-  emojiPresentation: Option[Boolean],
-  emojiModifierBase: Option[Boolean],
-  emojiGroup: Option[String],
-  emojiSubgroup: Option[String],
-
   meaning: Option[String],
   mandarinReading: Option[Seq[String]],
   cantoneseReading: Option[String],
@@ -71,6 +64,15 @@ case class CodeInfo(
   japaneseOnReading: Option[Seq[String]],
 
   koreanHanja: Option[Seq[String]],
+
+  unihanFlag: Option[Boolean],
+
+  // 絵文字用のフォントで表示すべきかどうか
+  emojiFont: Option[Boolean],
+  emojiPresentation: Option[Boolean],
+  emojiModifierBase: Option[Boolean],
+  emojiGroup: Option[String],
+  emojiSubgroup: Option[String],
 
   html: Option[String],
   option: Option[Seq[String]],
@@ -121,11 +123,6 @@ case class CodeInfo(
   def updateCjkTraditionalVariant(newValue: String) = this.copy(cjkTraditionalVariant = mergeValue(cjkTraditionalVariant, newValue));
   def updateCjkZVariant(newValue: String) = this.copy(cjkZVariant = mergeValue(cjkZVariant, newValue));
 
-  def updateEmojiFont(newValue: Boolean) = this.copy(emojiFont = mergeValue(emojiFont, newValue));
-  def updateEmojiPresentation(newValue: Boolean) = this.copy(emojiPresentation = mergeValue(emojiPresentation, newValue));
-  def updateEmojiModifierBase(newValue: Boolean) = this.copy(emojiModifierBase = mergeValue(emojiModifierBase, newValue));
-  def updateEmojiGroup(newValue: String) = this.copy(emojiGroup = mergeValue(emojiGroup, newValue));
-  def updateEmojiSubgroup(newValue: String) = this.copy(emojiSubgroup = mergeValue(emojiSubgroup, newValue));
   def updateMeaning(newValue: String) = this.copy(meaning = mergeValue(meaning, newValue));
   def updateMandarinReading(newValue: String) = this.copy(mandarinReading = mergeValue(mandarinReading, newValue));
   def updateCantoneseReading(newValue: String) = this.copy(cantoneseReading = mergeValue(cantoneseReading, newValue));
@@ -133,6 +130,14 @@ case class CodeInfo(
   def updateJapaneseKunReading(newValue: String) = this.copy(japaneseKunReading = mergeValue(japaneseKunReading, newValue));
   def updateJapaneseOnReading(newValue: String) = this.copy(japaneseOnReading = mergeValue(japaneseOnReading, newValue));
   def updateKoreanHanja(newValue: String) = this.copy(koreanHanja = mergeValue(koreanHanja, newValue));
+  def updateUnihanFlag(newValue: Boolean) = this.copy(unihanFlag = mergeValue(unihanFlag, newValue));
+
+  def updateEmojiFont(newValue: Boolean) = this.copy(emojiFont = mergeValue(emojiFont, newValue));
+  def updateEmojiPresentation(newValue: Boolean) = this.copy(emojiPresentation = mergeValue(emojiPresentation, newValue));
+  def updateEmojiModifierBase(newValue: Boolean) = this.copy(emojiModifierBase = mergeValue(emojiModifierBase, newValue));
+  def updateEmojiGroup(newValue: String) = this.copy(emojiGroup = mergeValue(emojiGroup, newValue));
+  def updateEmojiSubgroup(newValue: String) = this.copy(emojiSubgroup = mergeValue(emojiSubgroup, newValue));
+
   def updateHtml(newValue: String) = this.copy(html = mergeValue(html, newValue));
   def updateOption(newValue: String) = this.copy(option = mergeValue(option, newValue));
 
@@ -263,7 +268,7 @@ object CodeInfo {
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
-                       None, None, None, None, None, None);
+                       None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));
