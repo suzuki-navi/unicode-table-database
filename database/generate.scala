@@ -17,7 +17,7 @@ import scala.util.Using;
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
       //fetchPropList("var/PropList.txt") ++
       //fetchEmojiData("var/emoji-data.txt") ++
-      //generateHanguleSyllables() ++
+      generateHangulSyllables() ++
       Nil
     ).foldLeft(Map.empty) { (infoMap, entry) =>
       val (code, updator) = entry;

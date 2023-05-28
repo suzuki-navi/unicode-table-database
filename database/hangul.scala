@@ -1,7 +1,7 @@
 
 // https://www.unicode.org/versions/Unicode15.0.0/ch03.pdf
 
-def generateHanguleSyllables(): Seq[(String, CodeInfo => CodeInfo)] = {
+def generateHangulSyllables(): Seq[(String, CodeInfo => CodeInfo)] = {
   println("generateHanguleSyllables");
   val sbase = 0xAC00;
   val lbase = 0x1100;
