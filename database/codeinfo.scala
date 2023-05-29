@@ -35,13 +35,20 @@ case class CodeInfo(
   turkicCaseFolding: Option[String],
   caseOf: Option[Seq[String]],
 
+  compositionExclusion: Option[Boolean],
   canonicalCombiningClass: Option[Int],
   decompositionType: Option[String],
   decompositionMapping: Option[String],
   decompositionMappingNFD: Option[String],
   decompositionMappingNFKD: Option[String],
   canonicallyCompositionMapping: Option[String],
-  otherCompositionMapping: Option[Seq[String]],
+
+  // code points for precomposed letters including this letter
+  precomposedIncludingThis: Option[Seq[String]],
+
+  // code points that are decomposed by compatibility into this specific letter
+  compatibilityPrecomposedIncludingThis: Option[Seq[String]],
+  compatibilityPrecomposedToThis: Option[Seq[String]],
 
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
@@ -74,7 +81,6 @@ case class CodeInfo(
   emojiSubgroup: Option[String],
 
   html: Option[String],
-  option: Option[Seq[String]],
 
 ) {
 
@@ -103,13 +109,16 @@ case class CodeInfo(
   def updateTurkicCaseFolding(newValue: String) = this.copy(turkicCaseFolding = mergeValue(turkicCaseFolding, newValue));
   def updateCaseOf(newValue: String) = this.copy(caseOf = mergeValue(caseOf, newValue));
 
+  def updateCompositionExclusion(newValue: Boolean) = this.copy(compositionExclusion = mergeValue(compositionExclusion, newValue));
   def updateCanonicalCombiningClass(newValue: Int) = this.copy(canonicalCombiningClass = mergeValue(canonicalCombiningClass, newValue));
   def updateDecompositionType(newValue: String) = this.copy(decompositionType = mergeValue(decompositionType, newValue));
   def updateDecompositionMapping(newValue: String) = this.copy(decompositionMapping = mergeValue(decompositionMapping, newValue));
   def updateDecompositionMappingNFD(newValue: String) = this.copy(decompositionMappingNFD = mergeValue(decompositionMappingNFD, newValue));
   def updateDecompositionMappingNFKD(newValue: String) = this.copy(decompositionMappingNFKD = mergeValue(decompositionMappingNFKD, newValue));
   def updateCanonicallyCompositionMapping(newValue: String) = this.copy(canonicallyCompositionMapping = mergeValue(canonicallyCompositionMapping, newValue));
-  def updateOtherCompositionMapping(newValue: String) = this.copy(otherCompositionMapping = mergeValue(otherCompositionMapping, newValue));
+  def updatePrecomposedIncludingThis(newValue: String) = this.copy(precomposedIncludingThis = mergeValue(precomposedIncludingThis, newValue));
+  def updateCompatibilityPrecomposedIncludingThis(newValue: String) = this.copy(compatibilityPrecomposedIncludingThis = mergeValue(compatibilityPrecomposedIncludingThis, newValue));
+  def updateCompatibilityPrecomposedToThis(newValue: String) = this.copy(compatibilityPrecomposedToThis = mergeValue(compatibilityPrecomposedToThis, newValue));
 
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
@@ -137,7 +146,6 @@ case class CodeInfo(
   def updateEmojiSubgroup(newValue: String) = this.copy(emojiSubgroup = mergeValue(emojiSubgroup, newValue));
 
   def updateHtml(newValue: String) = this.copy(html = mergeValue(html, newValue));
-  def updateOption(newValue: String) = this.copy(option = mergeValue(option, newValue));
 
   override def toString: String = {
     this.asJson.noSpaces;
@@ -180,6 +188,7 @@ case class CodeInfo(
 
   def updateForCanonicallyComposition(other: CodeInfo): CodeInfo = {
     var result: CodeInfo = this;
+    /*
     other.nameCorrection.foreach { newValue =>
       result = result.updateNameCorrection(newValue);
     }
@@ -204,9 +213,11 @@ case class CodeInfo(
     other.generalCategory.foreach { newValue =>
       result = result.updateGeneralCategory(newValue);
     }
+    */
     other.script.foreach { newValue =>
       result = result.updateScript(newValue);
     }
+    /*
     other.scriptExtension.getOrElse(Nil).foreach { newValue =>
       result = result.updateScriptExtension(newValue);
     }
@@ -252,6 +263,7 @@ case class CodeInfo(
     other.html.foreach { newValue =>
       result = result.updateHtml(newValue);
     }
+    */
     result;
   }
 
@@ -263,7 +275,7 @@ object CodeInfo {
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
-                       None, None, None, None, None, None);
+                       None, None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

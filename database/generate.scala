@@ -61,14 +61,14 @@ import scala.util.Using;
     val sequenceCodePointsWithDecompositionMappingInfoMap: Map[String, CodeInfo] = {
       val infoMap1 = sequenceCodePointsInfoMap;
       val infoMap2: Map[String, CodeInfo] = (
-        //selectDecompositionMapping(infoMap1) ++
+        selectDecompositionMapping(infoMap1) ++
         Nil
       ).foldLeft(infoMap1) { (infoMap, entry) =>
         val (code, updator) = entry;
         CodeInfo.updated(infoMap, code)(updator);
       }
       val infoMap3: Map[String, CodeInfo] = (
-        // selectCompositionMapping(infoMap2) ++
+        selectCompositionMapping(infoMap2) ++
         Nil
       ).foldLeft(infoMap2) { (infoMap, entry) =>
         val (code, updator) = entry;
@@ -241,7 +241,7 @@ def fetchDerivedNormalizationProps(path: String): Seq[(String, CodeInfo => CodeI
     val propName = cols(1);
     if (propName == "Full_Composition_Exclusion") {
       (rangeFirst to rangeList).map { c =>
-        (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateOption("Composition_Exclusion"));
+        (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateCompositionExclusion(true));
       }
     } else {
       Nil;
@@ -359,7 +359,6 @@ def selectCharacterInfoName(codePointInfoMap: Map[String, CodeInfo]): Seq[(Strin
   }
 }
 
-/*
 def selectDecompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
   def fetchDecompositionMapping(code: String, isCanonical: Boolean): String = {
     val info = codePointInfoMap(code);
@@ -407,28 +406,39 @@ def selectCompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(Stri
   var result: Seq[(String, CodeInfo => CodeInfo)] = Nil;
   codePointInfoMap.toSeq.sortBy(t => codeSortKey(t._1)).foreach { case (code, info) =>
     (info.decompositionType, info.decompositionMapping) match {
-      case (Some("canonical"), Some(decompositionMapping)) =>
-        if (info.option.getOrElse(Nil).contains("Composition_Exclusion")) {
-          result = result :+ (decompositionMapping, codeInfo => codeInfo.
-            updateOtherCompositionMapping(code));
-        } else {
-          result = result :+ (decompositionMapping, codeInfo => codeInfo.
-            updateCanonicallyCompositionMapping(code));
-          result = result :+ (decompositionMapping, codeInfo => codeInfo.
-            updateForCanonicallyComposition(codePointInfoMap(code)));
+      case (Some("canonical"), Some(decompositionMapping)) if (!info.compositionExclusion.getOrElse(false)) =>
+        result = result :+ (decompositionMapping, codeInfo => codeInfo.
+          updateCanonicallyCompositionMapping(code));
+        result = result :+ (decompositionMapping, codeInfo => codeInfo.
+          updateForCanonicallyComposition(codePointInfoMap(code)));
+        val cs = decompositionMapping.split(" ");
+        cs.foreach { c =>
+          result = result :+ (c, codeInfo => codeInfo.updatePrecomposedIncludingThis(code));
         }
       case (_, Some(decompositionMapping)) =>
-        result = result :+ (decompositionMapping, codeInfo => codeInfo.
-          updateOtherCompositionMapping(code));
-      case (_, None) =>
+        val cs = decompositionMapping.split(" ");
+        if (cs.length == 1) {
+          val c = cs(0);
+          result = result :+ (c, codeInfo => codeInfo.updateCompatibilityPrecomposedToThis(code));
+        } else {
+          cs.foreach { c =>
+            result = result :+ (c, codeInfo => codeInfo.updateCompatibilityPrecomposedIncludingThis(code));
+          }
+        }
+      case _ =>
+        // nothing
+    }
+    info.decompositionMapping match {
+      case Some(decompositionMapping) =>
+      case _ =>
         // nothing
     }
   }
   result;
 }
-*/
 
 def filterFinalInfoMap(codePointInfoMap: Map[String, CodeInfo]): Map[String, CodeInfo] = {
+  /*
   val ignoreList = Seq(
     CodeInfo.empty.updateOption("Noncharacter_Code_Point"),
     CodeInfo.empty.updateOption("Noncharacter_Code_Point").updateBlock("Supplementary Private Use Area-A"),
@@ -438,6 +448,8 @@ def filterFinalInfoMap(codePointInfoMap: Map[String, CodeInfo]): Map[String, Cod
   codePointInfoMap.filter { case (code, info) =>
     !ignoreList.contains(info);
   }
+  */
+  codePointInfoMap;
 }
 
 def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
