@@ -108,7 +108,7 @@ def fetchUnicodeData(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
     {
       val name = cols(1);
       if (name != "<control>") {
-        result = result :+ (code, codeInfo => codeInfo.updateNameDefault(name));
+        result = result :+ (code, codeInfo => codeInfo.updateName(name));
       }
     }
 
@@ -354,7 +354,7 @@ def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(Str
 def selectCharacterInfoName(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
   codePointInfoMap.toSeq.flatMap { case (code, info) =>
     selectName(info).map { name =>
-      (code, (codeInfo: CodeInfo) => codeInfo.updateName(name));
+      (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(name));
     }
   }
 }
@@ -525,7 +525,7 @@ def usingDataFile3(path: String, colCount: Int): Seq[(String, Option[Seq[String]
 }
 
 def selectName(info: CodeInfo): Option[String] = {
-  (info.nameControl, info.nameDefault, info.nameCorrection, info.nameEmoji, info.nameCustom) match {
+  (info.nameControl, info.name, info.nameCorrection, info.nameEmoji, info.nameCustom) match {
     case (_, _, _, _, Some(name)) => Some(name);
     case (_, _, _, Some(name), _) => Some(name);
     case (_, _, Some(name), _, _) => Some(name);

@@ -8,8 +8,6 @@ import io.circe.generic.semiauto.deriveEncoder;
 case class CodeInfo(
   name: Option[String],
 
-  nameDefault: Option[String],
-
   // https://www.unicode.org/Public/15.0.0/ucd/NameAliases.txt
   nameCorrection: Option[String],
   nameControl: Option[Seq[String]],
@@ -85,13 +83,13 @@ case class CodeInfo(
 ) {
 
   def updateName(newValue: String) = this.copy(name = mergeValue(name, newValue));
-  def updateNameDefault(newValue: String) = this.copy(nameDefault = mergeValue(nameDefault, newValue));
   def updateNameCorrection(newValue: String) = this.copy(nameCorrection = mergeValue(nameCorrection, newValue));
   def updateNameControl(newValue: String) = this.copy(nameControl = mergeValue(nameControl, newValue));
   def updateNameAlternate(newValue: String) = this.copy(nameAlternate = mergeValue(nameAlternate, newValue));
   def updateNameFigment(newValue: String) = this.copy(nameFigment = mergeValue(nameFigment, newValue));
   def updateNameAbbreviation(newValue: String) = this.copy(nameAbbreviation = mergeValue(nameAbbreviation, newValue));
   def updateNameEmoji(newValue: String) = this.copy(nameEmoji = mergeValue(nameEmoji, newValue));
+  def updateNameCustom(newValue: String): CodeInfo = this.copy(nameCustom = mergeValue(nameCustom, newValue));
   def updateNameCustom(nameOpt: Option[String]): CodeInfo = nameOpt match {
     case Some(newValue) => this.copy(nameCustom = mergeValue(nameCustom, newValue));
     case None => this;
@@ -275,7 +273,7 @@ object CodeInfo {
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
-                       None, None, None, None, None, None, None, None);
+                       None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

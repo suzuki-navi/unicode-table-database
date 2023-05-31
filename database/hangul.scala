@@ -30,7 +30,7 @@ def generateHangulSyllables(): Seq[(String, CodeInfo => CodeInfo)] = {
           (
             codePointToCode(codePoint),
             codeInfo => codeInfo.
-              updateNameDefault(name).
+              updateName(name).
               updateGeneralCategory("Lo").
               updateBidiClass("L").
               updateScript("Hangul").
