@@ -48,6 +48,9 @@ case class CodeInfo(
   compatibilityPrecomposedIncludingThis: Option[Seq[String]],
   compatibilityPrecomposedToThis: Option[Seq[String]],
 
+  graphemeBase: Option[Boolean],
+  graphemeExtend: Option[Boolean],
+
   // https://www.unicode.org/reports/tr44/tr44-30.html#Bidi_Class_Values
   bidiClass: Option[String],
 
@@ -69,6 +72,8 @@ case class CodeInfo(
 
   koreanHanja: Option[Seq[String]],
 
+  ideographicFlag: Option[Boolean],
+  unifiedIdeographFlag: Option[Boolean],
   unihanFlag: Option[Boolean],
 
   // 絵文字用のフォントで表示すべきかどうか
@@ -77,6 +82,15 @@ case class CodeInfo(
   emojiModifierBase: Option[Boolean],
   emojiGroup: Option[String],
   emojiSubgroup: Option[String],
+
+  variationSelectorFlag: Option[Boolean],
+  noncharacterFlag: Option[Boolean],
+
+  math: Option[Boolean],
+  idStart: Option[Boolean],
+  idContinue: Option[Boolean],
+  xidStart: Option[Boolean],
+  xidContinue: Option[Boolean],
 
   html: Option[String],
 
@@ -118,6 +132,9 @@ case class CodeInfo(
   def updateCompatibilityPrecomposedIncludingThis(newValue: String) = this.copy(compatibilityPrecomposedIncludingThis = mergeValue(compatibilityPrecomposedIncludingThis, newValue));
   def updateCompatibilityPrecomposedToThis(newValue: String) = this.copy(compatibilityPrecomposedToThis = mergeValue(compatibilityPrecomposedToThis, newValue));
 
+  def updateGraphemeBase(newValue: Boolean) = this.copy(graphemeBase = mergeValue(graphemeBase, newValue));
+  def updateGraphemeExtend(newValue: Boolean) = this.copy(graphemeExtend = mergeValue(graphemeExtend, newValue));
+
   def updateBidiClass(newValue: String) = this.copy(bidiClass = mergeValue(bidiClass, newValue));
   def updateBidiMirroring(newValue: String) = this.copy(bidiMirroring = mergeValue(bidiMirroring, newValue));
 
@@ -135,6 +152,8 @@ case class CodeInfo(
   def updateJapaneseKunReading(newValue: String) = this.copy(japaneseKunReading = mergeValue(japaneseKunReading, newValue));
   def updateJapaneseOnReading(newValue: String) = this.copy(japaneseOnReading = mergeValue(japaneseOnReading, newValue));
   def updateKoreanHanja(newValue: String) = this.copy(koreanHanja = mergeValue(koreanHanja, newValue));
+  def updateIdeographicFlag(newValue: Boolean) = this.copy(ideographicFlag = mergeValue(ideographicFlag, newValue));
+  def updateUnifiedIdeographFlag(newValue: Boolean) = this.copy(unifiedIdeographFlag = mergeValue(unifiedIdeographFlag, newValue));
   def updateUnihanFlag(newValue: Boolean) = this.copy(unihanFlag = mergeValue(unihanFlag, newValue));
 
   def updateEmojiFont(newValue: Boolean) = this.copy(emojiFont = mergeValue(emojiFont, newValue));
@@ -142,6 +161,15 @@ case class CodeInfo(
   def updateEmojiModifierBase(newValue: Boolean) = this.copy(emojiModifierBase = mergeValue(emojiModifierBase, newValue));
   def updateEmojiGroup(newValue: String) = this.copy(emojiGroup = mergeValue(emojiGroup, newValue));
   def updateEmojiSubgroup(newValue: String) = this.copy(emojiSubgroup = mergeValue(emojiSubgroup, newValue));
+
+  def updateVariationSelectorFlag(newValue: Boolean) = this.copy(variationSelectorFlag = mergeValue(variationSelectorFlag, newValue));
+  def updateNoncharacterFlag(newValue: Boolean) = this.copy(noncharacterFlag = mergeValue(noncharacterFlag, newValue));
+
+  def updateMath(newValue: Boolean) = this.copy(math = mergeValue(math, newValue));
+  def updateIdStart(newValue: Boolean) = this.copy(idStart = mergeValue(idStart, newValue));
+  def updateIdContinue(newValue: Boolean) = this.copy(idContinue = mergeValue(idContinue, newValue));
+  def updateXidStart(newValue: Boolean) = this.copy(xidStart = mergeValue(xidStart, newValue));
+  def updateXidContinue(newValue: Boolean) = this.copy(xidContinue = mergeValue(xidContinue, newValue));
 
   def updateHtml(newValue: String) = this.copy(html = mergeValue(html, newValue));
 
@@ -270,6 +298,7 @@ case class CodeInfo(
 object CodeInfo {
 
   def empty = CodeInfo(None, None, None, None, None, None, None, None, None, None, None,
+                       None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,

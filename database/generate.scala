@@ -15,7 +15,8 @@ import scala.util.Using;
       fetchDerivedNormalizationProps("var/DerivedNormalizationProps.txt") ++
       fetchUnihanVariants("var/Unihan_Variants.txt") ++
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
-      //fetchPropList("var/PropList.txt") ++
+      fetchDerivedCoreProperties("var/DerivedCoreProperties.txt") ++
+      fetchPropList("var/PropList.txt") ++
       //fetchEmojiData("var/emoji-data.txt") ++
       generateHangulSyllables() ++
       Nil
@@ -249,7 +250,56 @@ def fetchDerivedNormalizationProps(path: String): Seq[(String, CodeInfo => CodeI
   }
 }
 
-/*
+def fetchDerivedCoreProperties(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile(path, 2).flatMap { case (line, cols) =>
+    val codePoints = cols(0).split("\\.\\.");
+    val (rangeFirst, rangeList) = if (codePoints.length >= 2) {
+      (Integer.parseInt(codePoints(0), 16), Integer.parseInt(codePoints(1), 16));
+    } else {
+      val c = Integer.parseInt(codePoints(0), 16);
+      (c, c);
+    }
+    val optionName = cols(1);
+    // https://www.unicode.org/reports/tr44/#DerivedCoreProperties.txt
+    optionName match {
+      /*
+      case "Grapheme_Base" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateGraphemeBase(true));
+        }
+      case "Grapheme_Extend" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateGraphemeExtend(true));
+        }
+      */
+      case "Math" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateMath(true));
+        }
+      /*
+      case "ID_Start" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateIdStart(true));
+        }
+      case "ID_Continue" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateIdContinue(true));
+        }
+      case "XID_Start" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateXidStart(true));
+        }
+      case "XID_Continue" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateXidContinue(true));
+        }
+      */
+      case _ =>
+        Nil; // TODO
+    }
+  }
+}
+
 def fetchPropList(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
     val codePoints = cols(0).split("\\.\\.");
@@ -260,12 +310,31 @@ def fetchPropList(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
       (c, c);
     }
     val optionName = cols(1);
-    (rangeFirst to rangeList).map { c =>
-      (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateOption(optionName));
+    // https://www.unicode.org/reports/tr44/#PropList.txt
+    optionName match {
+      case "Ideographic" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateIdeographicFlag(true));
+        }
+      case "Unified_Ideograph" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateUnifiedIdeographFlag(true));
+        }
+      case "Variation_Selector" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateVariationSelectorFlag(true));
+        }
+      case "Noncharacter_Code_Point" =>
+        (rangeFirst to rangeList).map { c =>
+          (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateNoncharacterFlag(true));
+        }
+      case _ =>
+        Nil; // TODO
     }
   }
 }
 
+/*
 def fetchCaseFolding(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 4).flatMap { case (line, cols) =>
     val capital = cols(0);
@@ -440,16 +509,15 @@ def selectCompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(Stri
 def filterFinalInfoMap(codePointInfoMap: Map[String, CodeInfo]): Map[String, CodeInfo] = {
   /*
   val ignoreList = Seq(
-    CodeInfo.empty.updateOption("Noncharacter_Code_Point"),
-    CodeInfo.empty.updateOption("Noncharacter_Code_Point").updateBlock("Supplementary Private Use Area-A"),
-    CodeInfo.empty.updateOption("Noncharacter_Code_Point").updateBlock("Supplementary Private Use Area-B"),
+    CodeInfo.empty.updateNoncharacterFlag(true),
+    CodeInfo.empty.updateNoncharacterFlag(true).updateBlock("Supplementary Private Use Area-A"),
+    CodeInfo.empty.updateNoncharacterFlag(true).updateBlock("Supplementary Private Use Area-B"),
     CodeInfo.empty.updateOption("Other_Default_Ignorable_Code_Point"),
   );
-  codePointInfoMap.filter { case (code, info) =>
-    !ignoreList.contains(info);
-  }
   */
-  codePointInfoMap;
+  codePointInfoMap.filter { case (code, info) =>
+    !info.noncharacterFlag.getOrElse(false)
+  }
 }
 
 def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
