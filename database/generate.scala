@@ -46,8 +46,8 @@ import scala.util.Using;
     }
 
     val sequenceCodePointsInfoMap: Map[String, CodeInfo] = (
-      //fetchCaseFolding("var/CaseFolding.txt") ++
-      //fetchSpecialCasing(singleCodePointWithBlockInfoMap, "var/SpecialCasing.txt") ++
+      fetchCaseFolding("var/CaseFolding.txt") ++
+      fetchSpecialCasing(singleCodePointWithBlockInfoMap, "var/SpecialCasing.txt") ++
       //fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
       //fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
       //fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
@@ -262,7 +262,6 @@ def fetchDerivedCoreProperties(path: String): Seq[(String, CodeInfo => CodeInfo)
     val optionName = cols(1);
     // https://www.unicode.org/reports/tr44/#DerivedCoreProperties.txt
     optionName match {
-      /*
       case "Grapheme_Base" =>
         (rangeFirst to rangeList).map { c =>
           (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateGraphemeBase(true));
@@ -271,12 +270,10 @@ def fetchDerivedCoreProperties(path: String): Seq[(String, CodeInfo => CodeInfo)
         (rangeFirst to rangeList).map { c =>
           (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateGraphemeExtend(true));
         }
-      */
       case "Math" =>
         (rangeFirst to rangeList).map { c =>
           (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateMath(true));
         }
-      /*
       case "ID_Start" =>
         (rangeFirst to rangeList).map { c =>
           (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateIdStart(true));
@@ -293,7 +290,6 @@ def fetchDerivedCoreProperties(path: String): Seq[(String, CodeInfo => CodeInfo)
         (rangeFirst to rangeList).map { c =>
           (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateXidContinue(true));
         }
-      */
       case _ =>
         Nil; // TODO
     }
@@ -334,7 +330,6 @@ def fetchPropList(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   }
 }
 
-/*
 def fetchCaseFolding(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 4).flatMap { case (line, cols) =>
     val capital = cols(0);
@@ -397,7 +392,6 @@ def fetchSpecialCasing(codePointInfoMap: Map[String, CodeInfo], path: String): S
     result;
   }
 }
-*/
 
 def fetchBlocks(codePointInfoMap: Map[String, CodeInfo], path: String): Seq[(String, CodeInfo => CodeInfo)] = {
   usingDataFile(path, 2).flatMap { case (line, cols) =>
