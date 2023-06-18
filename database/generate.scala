@@ -17,7 +17,7 @@ import scala.util.Using;
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
       fetchDerivedCoreProperties("var/DerivedCoreProperties.txt") ++
       fetchPropList("var/PropList.txt") ++
-      //fetchEmojiData("var/emoji-data.txt") ++
+      fetchEmojiData("var/emoji-data.txt") ++
       generateHangulSyllables() ++
       Nil
     ).foldLeft(Map.empty) { (infoMap, entry) =>
@@ -48,10 +48,10 @@ import scala.util.Using;
     val sequenceCodePointsInfoMap: Map[String, CodeInfo] = (
       fetchCaseFolding("var/CaseFolding.txt") ++
       fetchSpecialCasing(singleCodePointWithBlockInfoMap, "var/SpecialCasing.txt") ++
-      //fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
-      //fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
-      //fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
-      //fetchEmojiTest(singleCodePointWithBlockInfoMap, "var/emoji-test.txt") ++
+      fetchEmojiSequences(singleCodePointWithBlockInfoMap, "var/emoji-sequences.txt") ++
+      fetchEmojiVariationSequences(singleCodePointWithBlockInfoMap, "var/emoji-variation-sequences.txt") ++
+      fetchEmojiZwjSequences(singleCodePointWithBlockInfoMap, "var/emoji-zwj-sequences.txt") ++
+      fetchEmojiTest(singleCodePointWithBlockInfoMap, "var/emoji-test.txt") ++
       //combineHangulSyllables(singleCodePointWithBlockInfoMap) ++
       Nil
     ).foldLeft(singleCodePointWithBlockInfoMap) { (infoMap, entry) =>
@@ -79,11 +79,8 @@ import scala.util.Using;
     }
 
     val codePointInfoMap: Map[String, CodeInfo] = (
-      //selectMathematicalSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
-      //selectArrowSymbols(sequenceCodePointsWithDecompositionMappingInfoMap) ++
-      //selectEmojiCharacters(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      selectEmojiCharacters(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       selectCharacterInfoName(sequenceCodePointsWithDecompositionMappingInfoMap) ++
-      //assignRegion(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       Nil
     ).foldLeft(sequenceCodePointsWithDecompositionMappingInfoMap) { (infoMap, entry) =>
       val (code, updator) = entry;
