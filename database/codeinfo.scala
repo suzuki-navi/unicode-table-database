@@ -48,6 +48,9 @@ case class CodeInfo(
   compatibilityPrecomposedIncludingThis: Option[Seq[String]],
   compatibilityPrecomposedToThis: Option[Seq[String]],
 
+  compositionMappingNFC: Option[String],
+  compositionMappingNFKC: Option[String],
+
   graphemeBase: Option[Boolean],
   graphemeExtend: Option[Boolean],
 
@@ -131,6 +134,8 @@ case class CodeInfo(
   def updatePrecomposedIncludingThis(newValue: String) = this.copy(precomposedIncludingThis = mergeValue(precomposedIncludingThis, newValue));
   def updateCompatibilityPrecomposedIncludingThis(newValue: String) = this.copy(compatibilityPrecomposedIncludingThis = mergeValue(compatibilityPrecomposedIncludingThis, newValue));
   def updateCompatibilityPrecomposedToThis(newValue: String) = this.copy(compatibilityPrecomposedToThis = mergeValue(compatibilityPrecomposedToThis, newValue));
+  def updateCompositionMappingNFC(newValue: String) = this.copy(compositionMappingNFC = mergeValue(compositionMappingNFC, newValue));
+  def updateCompositionMappingNFKC(newValue: String) = this.copy(compositionMappingNFKC = mergeValue(compositionMappingNFKC, newValue));
 
   def updateGraphemeBase(newValue: Boolean) = this.copy(graphemeBase = mergeValue(graphemeBase, newValue));
   def updateGraphemeExtend(newValue: Boolean) = this.copy(graphemeExtend = mergeValue(graphemeExtend, newValue));
@@ -302,7 +307,7 @@ object CodeInfo {
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
-                       None, None, None, None, None, None, None);
+                       None, None, None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

@@ -80,6 +80,7 @@ import scala.util.Using;
 
     val codePointInfoMap: Map[String, CodeInfo] = (
       selectEmojiCharacters(sequenceCodePointsWithDecompositionMappingInfoMap) ++
+      selectNormalizationInfo(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       selectCharacterInfoName(sequenceCodePointsWithDecompositionMappingInfoMap) ++
       Nil
     ).foldLeft(sequenceCodePointsWithDecompositionMappingInfoMap) { (infoMap, entry) =>
@@ -237,6 +238,7 @@ def fetchDerivedNormalizationProps(path: String): Seq[(String, CodeInfo => CodeI
       (c, c);
     }
     val propName = cols(1);
+    // https://www.unicode.org/reports/tr44/#DerivedNormalizationProps.txt
     if (propName == "Full_Composition_Exclusion") {
       (rangeFirst to rangeList).map { c =>
         (codePointToCode(c), (codeInfo: CodeInfo) => codeInfo.updateCompositionExclusion(true));
@@ -488,14 +490,116 @@ def selectCompositionMapping(codePointInfoMap: Map[String, CodeInfo]): Seq[(Stri
       case _ =>
         // nothing
     }
-    info.decompositionMapping match {
-      case Some(decompositionMapping) =>
-      case _ =>
-        // nothing
-    }
   }
   result;
 }
+
+def selectNormalizationInfo(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
+  val compositionMapping: Map[String, String] = {
+    codePointInfoMap.toSeq.flatMap { case (code, info) =>
+      info.canonicallyCompositionMapping match {
+        case Some(mapping) =>
+          Some((code, mapping));
+        case None =>
+          None;
+      }
+    }.toMap;
+  }
+  def getSegmentList(cccList: IndexedSeq[Int]): Seq[(Int, Int)] = {
+    val starterList1 = cccList.zipWithIndex.filter(_._1 == 0).map(_._2);
+    val starterList2 = if (starterList1.size > 0 && starterList1(0) == 0) {
+      starterList1;
+    } else {
+      0 +: starterList1;
+    }
+    val segmentList: Seq[(Int, Int)] = starterList2.zipWithIndex.map { case (starter, idx) =>
+      if (idx == starterList2.size - 1) {
+        (starter, cccList.size);
+      } else {
+        (starter, starterList2(idx + 1));
+      }
+    }
+    segmentList;
+  }
+  def reorder(codePoints: IndexedSeq[String], cccList: IndexedSeq[Int], start: Int, end: Int): Seq[String] = {
+    codePoints.zipWithIndex.slice(start, end).sortBy { case (codePoint, idx) =>
+      cccList(idx);
+    }.map { case (codePoint, idx) =>
+      codePoint;
+    }
+  }
+  def composeSub(codePoints: Seq[String]): Seq[String] = {
+    codePoints.foldLeft(Seq.empty[String]) { (composed, codePoint) =>
+      if (composed.isEmpty) {
+        Seq(codePoint);
+      } else {
+        val last = composed.last;
+        val lastCCC = codePointInfoMap(last).canonicalCombiningClass.getOrElse(0);
+        val currCCC = codePointInfoMap(codePoint).canonicalCombiningClass.getOrElse(0);
+        if (lastCCC >= currCCC) {
+          composed :+ codePoint;
+        } else {
+          val key = composed.head + " " + codePoint;
+          compositionMapping.get(key) match {
+            case None =>
+              composed :+ codePoint;
+            case Some(composedCodePoint) =>
+              composedCodePoint +: composed.tail;
+          }
+        }
+      }
+    }
+  }
+  def compose(code: String): String = {
+    val codePoints: IndexedSeq[String] = code.split(" ").toIndexedSeq;
+    if (codePoints.length == 1) {
+      code;
+    } else {
+      val cccList: IndexedSeq[Int] = codePoints.map { codePoint => 
+        codePointInfoMap(codePoint).canonicalCombiningClass.getOrElse(0);
+      }
+      val segmentList = getSegmentList(cccList);
+      segmentList.flatMap { case (start, end) =>
+        val sortedCodePoints: Seq[String] = reorder(codePoints, cccList, start, end);
+        composeSub(sortedCodePoints);
+      }.mkString(" ");
+    }
+  }
+
+  codePointInfoMap.toSeq.flatMap { case (code, info) =>
+    val nfd = info.decompositionMappingNFD.getOrElse(code);
+    val nfkd = info.decompositionMappingNFD.getOrElse(code);
+    if (nfd == nfkd) {
+      val nfc = compose(nfd);
+      if (nfc == code) {
+        Nil;
+      } else {
+        Seq(
+          (code, codeInfo => codeInfo.updateCompositionMappingNFC(nfc)),
+          (code, codeInfo => codeInfo.updateCompositionMappingNFKC(nfc)),
+        );
+      }
+    } else {
+      val nfc = compose(nfd);
+      val nfkc = compose(nfkd);
+      (if (nfc == code) {
+        Nil;
+      } else {
+        Seq[(String, CodeInfo => CodeInfo)](
+          (code, codeInfo => codeInfo.updateCompositionMappingNFC(nfc)),
+        );
+      }) ++ (if (nfkc == code) {
+        Nil;
+      } else {
+        Seq[(String, CodeInfo => CodeInfo)](
+          (code, codeInfo => codeInfo.updateCompositionMappingNFKC(nfc)),
+        );
+      });
+    }
+  }
+}
+
+
 
 def filterFinalInfoMap(codePointInfoMap: Map[String, CodeInfo]): Map[String, CodeInfo] = {
   /*
