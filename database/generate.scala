@@ -529,7 +529,17 @@ def selectNormalizationInfo(codePointInfoMap: Map[String, CodeInfo]): Seq[(Strin
       codePoint;
     }
   }
-  def composeSub(codePoints: Seq[String]): Seq[String] = {
+  def composeSub1(composedPrev: String, codePoints: Seq[String]): Seq[String] = {
+    val codePoint = codePoints.head;
+    val key = composedPrev + " " + codePoint;
+    compositionMapping.get(key) match {
+      case None =>
+        composedPrev +: composeSub2(codePoints);
+      case Some(composedCodePoint) =>
+        composeSub2(composedCodePoint +: codePoints.tail);
+    }
+  }
+  def composeSub2(codePoints: Seq[String]): Seq[String] = {
     codePoints.foldLeft(Seq.empty[String]) { (composed, codePoint) =>
       if (composed.isEmpty) {
         Seq(codePoint);
@@ -560,10 +570,23 @@ def selectNormalizationInfo(codePointInfoMap: Map[String, CodeInfo]): Seq[(Strin
         codePointInfoMap(codePoint).canonicalCombiningClass.getOrElse(0);
       }
       val segmentList = getSegmentList(cccList);
-      segmentList.flatMap { case (start, end) =>
+      val t = segmentList.foldLeft[(Seq[String], Option[String])]((Seq.empty, None)) { (t1, t2) =>
+        val (composed, composedPrevOpt) = t1;
+        val (start, end) = t2;
         val sortedCodePoints: Seq[String] = reorder(codePoints, cccList, start, end);
-        composeSub(sortedCodePoints);
-      }.mkString(" ");
+        val currComposed = composedPrevOpt match {
+          case Some(composedPrev) =>
+            composeSub1(composedPrev, sortedCodePoints);
+          case None =>
+            composeSub2(sortedCodePoints);
+        }
+        if (currComposed.size == 1) {
+          (composed, Some(currComposed.head));
+        } else {
+          (composed ++ currComposed, None);
+        }
+      }
+      (t._1 ++ t._2).mkString(" ");
     }
   }
 
