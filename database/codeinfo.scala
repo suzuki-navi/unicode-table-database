@@ -75,6 +75,9 @@ case class CodeInfo(
 
   koreanHanja: Option[Seq[String]],
 
+  joyoKanji: Option[Boolean],
+  koreanEducationHanja: Option[Boolean],
+
   ideographicFlag: Option[Boolean],
   unifiedIdeographFlag: Option[Boolean],
   unihanFlag: Option[Boolean],
@@ -157,6 +160,10 @@ case class CodeInfo(
   def updateJapaneseKunReading(newValue: String) = this.copy(japaneseKunReading = mergeValue(japaneseKunReading, newValue));
   def updateJapaneseOnReading(newValue: String) = this.copy(japaneseOnReading = mergeValue(japaneseOnReading, newValue));
   def updateKoreanHanja(newValue: String) = this.copy(koreanHanja = mergeValue(koreanHanja, newValue));
+
+  def updateJoyoKanji(newValue: Boolean) = this.copy(joyoKanji = mergeValue(joyoKanji, newValue));
+  def updateKoreanEducationHanja(newValue: Boolean) = this.copy(koreanEducationHanja = mergeValue(koreanEducationHanja, newValue));
+
   def updateIdeographicFlag(newValue: Boolean) = this.copy(ideographicFlag = mergeValue(ideographicFlag, newValue));
   def updateUnifiedIdeographFlag(newValue: Boolean) = this.copy(unifiedIdeographFlag = mergeValue(unifiedIdeographFlag, newValue));
   def updateUnihanFlag(newValue: Boolean) = this.copy(unihanFlag = mergeValue(unihanFlag, newValue));
@@ -307,7 +314,7 @@ object CodeInfo {
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
                        None, None, None, None, None, None, None, None, None, None, None,
-                       None, None, None, None, None, None, None, None, None);
+                       None, None, None, None, None, None, None, None, None, None, None);
 
   def updated(infoMap: Map[String, CodeInfo], code: String)(updator: CodeInfo => CodeInfo): Map[String, CodeInfo] = {
     val newInfo = updator(infoMap.getOrElse(code, CodeInfo.empty));

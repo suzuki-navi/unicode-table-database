@@ -15,6 +15,7 @@ import scala.util.Using;
       fetchDerivedNormalizationProps("var/DerivedNormalizationProps.txt") ++
       fetchUnihanVariants("var/Unihan_Variants.txt") ++
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
+      fetchUnihanOtherMappings("var/Unihan_OtherMappings.txt") ++
       fetchDerivedCoreProperties("var/DerivedCoreProperties.txt") ++
       fetchPropList("var/PropList.txt") ++
       fetchEmojiData("var/emoji-data.txt") ++

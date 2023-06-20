@@ -230,6 +230,24 @@ def romajiToKana(romaji: String, isKatakana: Boolean): String = {
   }
 }
 
+def fetchUnihanOtherMappings(path: String): Seq[(String, CodeInfo => CodeInfo)] = {
+  usingDataFile2(path, 3).filter { case (line, cols) =>
+    cols(0).startsWith("U+");
+  }.flatMap { case (line, cols) =>
+    val code = cols(0).substring(2);
+    val category = cols(1);
+    if (category == "kJoyoKanji") {
+      // https://www.unicode.org/reports/tr38/#kJoyoKanji
+      Seq((code, (codeInfo: CodeInfo) => codeInfo.updateJoyoKanji(true)));
+    } else if (category == "kKoreanEducationHanja") {
+      // https://www.unicode.org/reports/tr38/#kKoreanEducationHanja
+      Seq((code, (codeInfo: CodeInfo) => codeInfo.updateKoreanEducationHanja(true)));
+    } else {
+      Nil;
+    }
+  }
+}
+
 def selectCJKIdeographName(codePointInfoMap: Map[String, CodeInfo]): Seq[(String, CodeInfo => CodeInfo)] = {
   codePointInfoMap.toSeq.flatMap { case (code, info) =>
     val block = info.block.getOrElse("");
@@ -241,7 +259,7 @@ def selectCJKIdeographName(codePointInfoMap: Map[String, CodeInfo]): Seq[(String
       } else {
         "CJK UNIFIED IDEOGRAPH-" + code;
       }
-      // https://www.unicode.org/reports/tr38/tr38-33.html#BlockListing
+      // https://www.unicode.org/reports/tr38/#BlockListing
       Seq(
         (code, (codeInfo: CodeInfo) => codeInfo.updateNameCustom(Some(name))),
         (code, (codeInfo: CodeInfo) => codeInfo.updateUnihanFlag(true)),
