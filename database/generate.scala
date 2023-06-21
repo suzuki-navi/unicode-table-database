@@ -16,6 +16,7 @@ import scala.util.Using;
       fetchUnihanVariants("var/Unihan_Variants.txt") ++
       fetchUnihanReadings("var/Unihan_Readings.txt") ++
       fetchUnihanOtherMappings("var/Unihan_OtherMappings.txt") ++
+      fetchChiseData("var/chise/IDS-UCS-Basic.txt") ++
       fetchDerivedCoreProperties("var/DerivedCoreProperties.txt") ++
       fetchPropList("var/PropList.txt") ++
       fetchEmojiData("var/emoji-data.txt") ++
@@ -663,6 +664,7 @@ def usingDataFile(path: String, colCount: Int): Seq[(String, Seq[String])] = {
 }
 
 def usingDataFile2(path: String, colCount: Int): Seq[(String, Seq[String])] = {
+  println(path);
   Using(Source.fromFile(path)) { source =>
     source.getLines().flatMap { line =>
       val p = line.indexOf("#");
@@ -706,6 +708,29 @@ def usingDataFile3(path: String, colCount: Int): Seq[(String, Option[Seq[String]
           throw new Exception(line);
         }
         Some((line, Some(cols)));
+      }
+    }.toSeq;
+  }.get;
+}
+
+def usingDataFile4(path: String, colCount: Int): Seq[(String, Seq[String])] = {
+  println(path);
+  Using(Source.fromFile(path)) { source =>
+    source.getLines().flatMap { line =>
+      val p = line.indexOf(";;");
+      val line2 = if (p < 0) {
+        line;
+      } else {
+        line.substring(0, p);
+      }
+      if (line2 == "") {
+        None;
+      } else {
+        val cols = line2.split("\t", colCount).toIndexedSeq.map(_.trim);
+        if (cols.size != colCount) {
+          throw new Exception(line);
+        }
+        Some((line, cols));
       }
     }.toSeq;
   }.get;
