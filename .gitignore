@@ -1,38 +1,11 @@
-/.sbt-docker-cache
 /data/*
 !/data/.gitempty
 /var/*
 !/var/.gitempty
 
-# macOS
-.DS_Store
-
-# sbt specific
-dist/*
+# sbt
 target/
-lib_managed/
-src_managed/
-project/boot/
-project/plugins/project/
-project/local-plugins.sbt
-.history
-.ensime
-.ensime_cache/
-.sbt-scripted/
-local.sbt
 
-# Bloop
-.bsp
+# anytoold
+/.sbt-docker-cache
 
-# VS Code
-.vscode/
-
-# Metals
-.bloop/
-.metals/
-metals.sbt
-
-# IDEA
-.idea
-.idea_modules
-/.worksheet/
