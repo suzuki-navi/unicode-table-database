@@ -1,0 +1,4 @@
+
+$ cat data/all.json | jq -C '.|to_entries|.[]|{code:.key}*.value' | less -SRXF
+$ cat data/all.json | jq -C '.|to_entries|.[]|{code:.key}*.value|select(.block=="Basic Latin")' | less -SRXF
+$ cat data/all.json | jq -C '.|to_entries|.[]|{code:.key}*.value|select(has("name") and (.name|test("arrow"; "i")))' | less -SRXF
